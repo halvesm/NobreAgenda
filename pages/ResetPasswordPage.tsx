@@ -12,13 +12,9 @@ const ResetPasswordPage: React.FC = () => {
     const [success, setSuccess] = useState(false);
 
     useEffect(() => {
-        // The App component handles the initial redirect to this page 
-        // when it detects the recovery token in the URL.
-        // We just need to make sure the user is actually "logged in" 
-        // via the recovery link session.
+        // Verification of active session (recovery link session)
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (!session) {
-                // If no session and we're on this page, the link might be invalid or expired
                 setError('O link de recuperação é inválido ou expirou. Por favor, solicite uma nova redefinição.');
                 setTimeout(() => {
                     navigate('/login');
@@ -64,20 +60,24 @@ const ResetPasswordPage: React.FC = () => {
     if (success) {
         return (
             <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark p-6 items-center justify-center text-center">
-                <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-xl max-w-sm w-full border border-slate-100 dark:border-slate-800">
-                    <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-3xl">check_circle</span>
+                <div className="bg-white dark:bg-slate-900 p-10 rounded-3xl shadow-2xl max-w-sm w-full border border-slate-100 dark:border-slate-800 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-2 bg-green-500"></div>
+                    <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-4xl">verified</span>
                     </div>
-                    <h2 className="text-2xl font-bold mb-2">Senha Alterada!</h2>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
-                        Sua senha foi atualizada com sucesso. Você será redirecionado para a tela de login em instantes.
+                    <h2 className="text-2xl font-bold mb-3 text-slate-900 dark:text-white">Senha Alterada!</h2>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mb-8 leading-relaxed">
+                        Sua senha foi atualizada com sucesso. Você será redirecionado para a tela de login para acessar sua conta.
                     </p>
-                    <button
-                        onClick={() => navigate('/login')}
-                        className="w-full bg-primary text-white font-bold h-12 rounded-lg shadow-md transition-all active:scale-[0.98]"
-                    >
-                        Ir para Login Agora
-                    </button>
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-green-500 h-full animate-[progress_3s_linear]"></div>
+                    </div>
+                    <style>{`
+                        @keyframes progress {
+                            from { width: 0%; }
+                            to { width: 100%; }
+                        }
+                    `}</style>
                 </div>
             </div>
         );
@@ -85,69 +85,73 @@ const ResetPasswordPage: React.FC = () => {
 
     return (
         <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark p-4">
-            <div className="relative w-full mb-6">
-                <div className="w-full bg-center bg-no-repeat bg-cover flex flex-col justify-end overflow-hidden rounded-lg min-h-[160px] shadow-sm relative" style={{ backgroundImage: "url('/school-header.jpg')" }}>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-                    <div className="relative z-10 p-4 flex items-center gap-3">
-                        <img src="/school-logo.png" alt="Nobre Agenda" className="w-10 h-10 object-contain drop-shadow-lg" />
-                        <h2 className="text-white font-bold text-xl">Nobre Agenda</h2>
+            <div className="relative w-full mb-8">
+                <div className="w-full bg-center bg-no-repeat bg-cover flex flex-col justify-end overflow-hidden rounded-2xl min-h-[180px] shadow-lg relative" style={{ backgroundImage: "url('/school-header.jpg')" }}>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                    <div className="relative z-10 p-6 flex items-center gap-4">
+                        <img src="/school-logo.png" alt="Logo" className="w-12 h-12 object-contain filter drop-shadow-lg" />
+                        <div>
+                            <h2 className="text-white font-bold text-2xl">Nobre Agenda</h2>
+                            <p className="text-white/60 text-xs uppercase tracking-widest font-bold">Segurança</p>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div className="max-w-md mx-auto w-full">
-                <div className="text-center mb-8">
-                    <h1 className="text-[#0d141b] dark:text-white text-[28px] font-bold leading-tight">Nova Senha</h1>
-                    <p className="text-[#4c739a] dark:text-gray-400 text-sm mt-1 px-6">Escolha uma nova senha segura para sua conta.</p>
+            <div className="max-w-md mx-auto w-full px-2">
+                <div className="mb-8">
+                    <h1 className="text-[#0d141b] dark:text-white text-3xl font-bold leading-tight">Nova Senha</h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">Escolha uma senha forte para proteger sua conta.</p>
                 </div>
 
                 {error && (
-                    <div className="bg-red-50 text-red-600 p-3 rounded-lg text-xs font-medium mb-4 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-sm">error</span> {error}
+                    <div className="bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 p-4 rounded-xl text-sm font-medium mb-6 flex items-start gap-3 border border-red-100 dark:border-red-900/20">
+                        <span className="material-symbols-outlined">error</span>
+                        <span>{error}</span>
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="text-[#0d141b] dark:text-gray-200 text-sm font-medium mb-1 block">Nova Senha</label>
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    <div className="space-y-2">
+                        <label className="text-slate-700 dark:text-gray-200 text-sm font-semibold ml-1">Senha</label>
                         <div className="relative">
                             <input
                                 type={showPassword ? "text" : "password"}
                                 required
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full h-12 rounded-lg border border-[#cfdbe7] dark:border-gray-700 bg-white dark:bg-gray-800 px-4 pr-12 focus:ring-2 focus:ring-primary outline-none dark:text-white"
-                                placeholder="••••••••"
+                                className="w-full h-14 rounded-2xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 pr-12 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none dark:text-white transition-all shadow-sm"
+                                placeholder="Pelo menos 6 caracteres"
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#4c739a]"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
                             >
-                                <span className="material-symbols-outlined text-lg">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                                <span className="material-symbols-outlined text-xl">{showPassword ? 'visibility_off' : 'visibility'}</span>
                             </button>
                         </div>
                     </div>
 
-                    <div>
-                        <label className="text-[#0d141b] dark:text-gray-200 text-sm font-medium mb-1 block">Confirmar Nova Senha</label>
+                    <div className="space-y-2">
+                        <label className="text-slate-700 dark:text-gray-200 text-sm font-semibold ml-1">Confirmar Senha</label>
                         <input
                             type={showPassword ? "text" : "password"}
                             required
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
-                            className="w-full h-12 rounded-lg border border-[#cfdbe7] dark:border-gray-700 bg-white dark:bg-gray-800 px-4 focus:ring-2 focus:ring-primary outline-none dark:text-white"
-                            placeholder="••••••••"
+                            className="w-full h-14 rounded-2xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none dark:text-white transition-all shadow-sm"
+                            placeholder="Repita a senha digitada"
                         />
                     </div>
 
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-primary hover:bg-blue-600 text-white font-bold h-12 rounded-lg shadow-md transition-all active:scale-[0.98] mt-6 disabled:opacity-70 flex items-center justify-center"
+                        className="w-full bg-primary hover:bg-blue-600 text-white font-bold h-14 rounded-2xl shadow-xl shadow-primary/20 transition-all active:scale-[0.98] mt-6 disabled:opacity-70 flex items-center justify-center"
                     >
                         {loading ? (
-                            <div className="size-5 rounded-full border-2 border-white/50 border-t-white animate-spin" />
+                            <div className="size-6 rounded-full border-3 border-white/30 border-t-white animate-spin" />
                         ) : (
                             'Salvar Nova Senha'
                         )}
@@ -159,3 +163,4 @@ const ResetPasswordPage: React.FC = () => {
 };
 
 export default ResetPasswordPage;
+

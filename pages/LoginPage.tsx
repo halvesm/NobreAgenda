@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User } from '../types';
 import { supabase } from '../lib/supabase';
 
@@ -7,6 +8,7 @@ interface Props {
 }
 
 const LoginPage: React.FC<Props> = ({ onLogin }) => {
+  const navigate = useNavigate();
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,25 +29,13 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
     'Informática'
   ];
 
-  const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSuccessMessage('');
     setLoading(true);
 
     try {
-      if (isForgotPassword) {
-        // Password Reset Request
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}`,
-        });
-
-        if (resetError) throw resetError;
-        setSuccessMessage('E-mail de recuperação enviado! Verifique sua caixa de entrada.');
-      } else if (isRegistering) {
+      if (isRegistering) {
         // Sign Up
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email,
@@ -115,12 +105,10 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
 
       <div className="text-center mb-6">
         <h1 className="text-[#0d141b] dark:text-white text-[28px] font-bold leading-tight">
-          {isForgotPassword ? 'Recuperar Senha' : (isRegistering ? 'Criar sua conta' : 'Bem-vindo de volta')}
+          {isRegistering ? 'Criar sua conta' : 'Bem-vindo de volta'}
         </h1>
         <p className="text-[#4c739a] dark:text-gray-400 text-sm mt-1 px-6">
-          {isForgotPassword
-            ? 'Enviaremos um link de redefinição para seu e-mail.'
-            : (isRegistering ? 'Preencha os dados abaixo para começar.' : 'Acesse seu painel de agendamentos.')}
+          {isRegistering ? 'Preencha os dados abaixo para começar.' : 'Acesse seu painel de agendamentos.'}
         </p>
       </div>
 
@@ -130,14 +118,8 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
         </div>
       )}
 
-      {successMessage && (
-        <div className="bg-green-50 text-green-600 p-3 rounded-lg text-xs font-medium mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-sm">check_circle</span> {successMessage}
-        </div>
-      )}
-
       <form onSubmit={handleSubmit} className="flex-1 flex flex-col space-y-4">
-        {isRegistering && !isForgotPassword && (
+        {isRegistering && (
           <>
             <div>
               <label className="block text-[#0d141b] dark:text-gray-200 text-sm font-medium mb-1">Nome Completo</label>
@@ -168,35 +150,33 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
           />
         </div>
 
-        {!isForgotPassword && (
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-[#0d141b] dark:text-gray-200 text-sm font-medium">Senha</label>
-              {!isRegistering && (
-                <button
-                  type="button"
-                  onClick={() => { setIsForgotPassword(true); setError(''); setSuccessMessage(''); }}
-                  className="text-primary text-xs font-bold hover:underline"
-                >
-                  Esqueceu a senha?
-                </button>
-              )}
-            </div>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-12 rounded-lg border border-[#cfdbe7] dark:border-gray-700 bg-white dark:bg-gray-800 px-4 pr-12 focus:ring-2 focus:ring-primary outline-none dark:text-white"
-                placeholder="••••••••"
-              />
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-[#0d141b] dark:text-gray-200 text-sm font-medium">Senha</label>
+            {!isRegistering && (
               <button
-                type="button" onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#4c739a]"
+                type="button"
+                onClick={() => navigate('/forgot-password')}
+                className="text-primary text-xs font-bold hover:underline"
               >
-                <span className="material-symbols-outlined text-lg">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                Esqueceu a senha?
               </button>
-            </div>
+            )}
           </div>
-        )}
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)}
+              className="w-full h-12 rounded-lg border border-[#cfdbe7] dark:border-gray-700 bg-white dark:bg-gray-800 px-4 pr-12 focus:ring-2 focus:ring-primary outline-none dark:text-white"
+              placeholder="••••••••"
+            />
+            <button
+              type="button" onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-[#4c739a]"
+            >
+              <span className="material-symbols-outlined text-lg">{showPassword ? 'visibility_off' : 'visibility'}</span>
+            </button>
+          </div>
+        </div>
 
         <button
           type="submit"
@@ -206,32 +186,20 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
           {loading ? (
             <div className="size-5 rounded-full border-2 border-white/50 border-t-white animate-spin" />
           ) : (
-            isForgotPassword ? 'Enviar E-mail de Recuperação' : (isRegistering ? 'Criar Conta' : 'Entrar')
+            isRegistering ? 'Criar Conta' : 'Entrar'
           )}
         </button>
 
         <div className="text-center mt-6">
           <p className="text-[#4c739a] dark:text-gray-400 text-sm">
-            {isForgotPassword ? (
-              <button
-                type="button"
-                onClick={() => { setIsForgotPassword(false); setError(''); setSuccessMessage(''); }}
-                className="text-primary font-bold hover:underline"
-              >
-                Voltar para o Login
-              </button>
-            ) : (
-              <>
-                {isRegistering ? 'Já tem uma conta?' : 'Não tem uma conta?'}
-                <button
-                  type="button"
-                  onClick={() => { setIsRegistering(!isRegistering); setError(''); setSuccessMessage(''); }}
-                  className="text-primary font-bold hover:underline ml-1"
-                >
-                  {isRegistering ? 'Faça Login' : 'Cadastre-se'}
-                </button>
-              </>
-            )}
+            {isRegistering ? 'Já tem uma conta?' : 'Não tem uma conta?'}
+            <button
+              type="button"
+              onClick={() => { setIsRegistering(!isRegistering); setError(''); }}
+              className="text-primary font-bold hover:underline ml-1"
+            >
+              {isRegistering ? 'Faça Login' : 'Cadastre-se'}
+            </button>
           </p>
         </div>
       </form>
