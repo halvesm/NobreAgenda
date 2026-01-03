@@ -1,0 +1,7 @@
+{
+  "name": "NobreReserva - Agendamento Escolar",
+  "description": "Sistema completo para professores agendarem laboratórios, auditórios e espaços comuns da escola com facilidade.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
