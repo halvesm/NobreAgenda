@@ -34,13 +34,30 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
     'Informática'
   ];
 
-  const toggleDarkMode = () => {
-    const newMode = !isDarkMode;
-    setIsDarkMode(newMode);
-    if (newMode) {
+  const toggleDarkMode = async () => {
+    const newTheme = !isDarkMode ? 'dark' : 'light';
+    setIsDarkMode(!isDarkMode);
+
+    // Aplicar na UI
+    if (newTheme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
+    }
+
+    // Salvar no localStorage para persistência imediata/offline
+    localStorage.setItem('theme', newTheme);
+
+    // Salvar no perfil (Supabase)
+    try {
+      if (user.id) {
+        await supabase
+          .from('profiles')
+          .update({ theme: newTheme })
+          .eq('id', user.id);
+      }
+    } catch (err) {
+      console.error('Erro ao salvar tema no perfil:', err);
     }
   };
 

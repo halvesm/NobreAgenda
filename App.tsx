@@ -15,6 +15,14 @@ const App: React.FC = () => {
 
   // Carregar sessão ao iniciar
   useEffect(() => {
+    // Aplicar tema inicial (do localStorage ou preferência do sistema)
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+
     // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -33,6 +41,7 @@ const App: React.FC = () => {
       } else {
         setUser(null);
         setLoading(false);
+        // Ao deslogar, mantemos o tema que está no localStorage
       }
     });
 
@@ -48,7 +57,18 @@ const App: React.FC = () => {
         .single();
 
       if (data) {
-        setUser(data as User);
+        const profile = data as User;
+        setUser(profile);
+
+        // Aplicar tema do perfil se existir
+        if (profile.theme) {
+          if (profile.theme === 'dark') {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+          localStorage.setItem('theme', profile.theme);
+        }
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -59,6 +79,7 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    // O tema permanece o que estava, pois é salvo no localStorage
   };
 
   if (loading) {

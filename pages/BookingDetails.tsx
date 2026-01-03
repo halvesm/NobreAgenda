@@ -152,11 +152,46 @@ const BookingDetails: React.FC<Props> = ({ onBook }) => {
         return `${year}-${month}-${day}`;
       };
 
+      const formattedDate = formatDateLocal(selectedDate);
+
+      // ✅ VERIFICAR CONFLITOS ANTES DE SALVAR
+      if (!editId) {
+        // Buscar agendamentos existentes para este espaço e data
+        const { data: existingBookings, error: checkError } = await supabase
+          .from('bookings')
+          .select('lessons')
+          .eq('space_id', space.id)
+          .eq('date', formattedDate)
+          .eq('status', 'Confirmado');
+
+        if (checkError) throw checkError;
+
+        // Verificar se há conflito de horários
+        if (existingBookings && existingBookings.length > 0) {
+          const occupiedLessons: number[] = [];
+          existingBookings.forEach((booking: any) => {
+            if (booking.lessons && Array.isArray(booking.lessons)) {
+              occupiedLessons.push(...booking.lessons);
+            }
+          });
+
+          // Verificar se alguma aula selecionada já está ocupada
+          const conflicts = selectedLessons.filter(lesson => occupiedLessons.includes(lesson));
+
+          if (conflicts.length > 0) {
+            const conflictNames = conflicts.map(index => LESSONS[index]).join(', ');
+            alert(`❌ Conflito de agendamento!\n\nUma ou mais aulas já foram agendadas para este dia:\n${conflictNames}\n\nPor favor, escolha outros horários.`);
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
       const bookingData = {
         user_id: existingUserId || user.id, // Keep original owner if editing
         space_id: space.id,
         space_name: space.name,
-        date: formatDateLocal(selectedDate),
+        date: formattedDate,
         lessons: selectedLessons,
         course: selectedCourse,
         year: selectedYear,
@@ -173,7 +208,7 @@ const BookingDetails: React.FC<Props> = ({ onBook }) => {
           .single();
 
         if (error) throw error;
-        alert('Agendamento atualizado com sucesso!');
+        alert('✅ Agendamento atualizado com sucesso!');
       } else {
         // INSERT new
         const { data, error } = await supabase
@@ -183,12 +218,13 @@ const BookingDetails: React.FC<Props> = ({ onBook }) => {
           .single();
 
         if (error) throw error;
+        alert('✅ Agendamento realizado com sucesso!\n\nSeu agendamento foi confirmado.');
       }
 
       if (onBook && !editId) onBook({ id: 'temp', ...bookingData } as any); // Mock for prop callback if needed
       navigate('/my-appointments');
     } catch (error: any) {
-      alert(`Erro ao agendar: ${error.message}`);
+      alert(`❌ Erro ao agendar: ${error.message}`);
     } finally {
       setLoading(false);
     }

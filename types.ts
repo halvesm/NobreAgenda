@@ -35,4 +35,5 @@ export interface User {
   department: string;
   email: string;
   avatar: string;
+  theme?: 'light' | 'dark';
 }

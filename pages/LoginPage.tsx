@@ -44,13 +44,15 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
 
         if (authData.user) {
           // Create profile
+          const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
           const newUser: User = {
             name,
             email,
             role: 'Professor(a)',
             department,
             avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=137fec&color=fff`,
-            id: authData.user.id
+            id: authData.user.id,
+            theme: currentTheme
           };
 
           const { error: profileError } = await supabase
@@ -62,7 +64,8 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
                 email: newUser.email,
                 role: newUser.role,
                 department: newUser.department,
-                avatar: newUser.avatar
+                avatar: newUser.avatar,
+                theme: newUser.theme
               }
             ]);
 
@@ -91,11 +94,9 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
       <div className="relative w-full mb-6">
         <div className="w-full bg-center bg-no-repeat bg-cover flex flex-col justify-end overflow-hidden rounded-lg min-h-[180px] shadow-sm relative" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1523050853064-85a19f03405c?q=80&w=800')" }}>
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-          <div className="relative z-10 p-4">
-            <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/20 backdrop-blur-md mb-2">
-              <span className="material-symbols-outlined text-white">school</span>
-            </span>
-            <h2 className="text-white font-bold text-xl">EduReserve</h2>
+          <div className="relative z-10 p-4 flex items-center gap-3">
+            <img src="/nobre-agenda-logo.png" alt="Nobre Agenda" className="w-12 h-12 object-contain drop-shadow-lg" />
+            <h2 className="text-white font-bold text-2xl">Nobre Agenda</h2>
           </div>
         </div>
       </div>
