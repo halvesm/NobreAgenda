@@ -18,11 +18,14 @@ const ResetPasswordPage: React.FC = () => {
         // via the recovery link session.
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (!session) {
-                // If no session and we're on this page, something is wrong
-                // (e.g. invalid or expired link)
+                // If no session and we're on this page, the link might be invalid or expired
+                setError('O link de recuperação é inválido ou expirou. Por favor, solicite uma nova redefinição.');
+                setTimeout(() => {
+                    navigate('/login');
+                }, 5000);
             }
         });
-    }, []);
+    }, [navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
