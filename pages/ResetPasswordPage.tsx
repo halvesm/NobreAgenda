@@ -12,15 +12,16 @@ const ResetPasswordPage: React.FC = () => {
     const [success, setSuccess] = useState(false);
 
     useEffect(() => {
-        // Check if we have a session (Supabase handles the recovery link automatically)
-        const checkSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
+        // The App component handles the initial redirect to this page 
+        // when it detects the recovery token in the URL.
+        // We just need to make sure the user is actually "logged in" 
+        // via the recovery link session.
+        supabase.auth.getSession().then(({ data: { session } }) => {
             if (!session) {
-                // If no session, it might be an invalid or expired link
-                // But the redirect usually already sets the session
+                // If no session and we're on this page, something is wrong
+                // (e.g. invalid or expired link)
             }
-        };
-        checkSession();
+        });
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {

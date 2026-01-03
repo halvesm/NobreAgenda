@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useNavigate, HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import BookingDetails from './pages/BookingDetails';
@@ -10,9 +10,10 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import { User } from './types';
 import { supabase } from './lib/supabase';
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   // Carregar sessão ao iniciar
   useEffect(() => {
@@ -36,7 +37,13 @@ const App: React.FC = () => {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        navigate('/reset-password');
+        setLoading(false);
+        return;
+      }
+
       if (session?.user) {
         fetchProfile(session.user.id);
       } else {
@@ -47,7 +54,7 @@ const App: React.FC = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -92,18 +99,24 @@ const App: React.FC = () => {
   }
 
   return (
+    <div className="max-w-md mx-auto min-h-screen bg-background-light dark:bg-background-dark shadow-2xl relative overflow-x-hidden">
+      <Routes>
+        <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage onLogin={() => { }} />} />
+        <Route path="/" element={!user ? <Navigate to="/login" /> : <HomePage user={user} />} />
+        <Route path="/admin" element={user?.role === 'Administrador' ? <AdminDashboard /> : <Navigate to="/" />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/booking/:id" element={!user ? <Navigate to="/login" /> : <BookingDetails />} />
+        <Route path="/my-appointments" element={!user ? <Navigate to="/login" /> : <MyAppointments />} />
+        <Route path="/profile" element={!user ? <Navigate to="/login" /> : <ProfilePage user={user} onLogout={handleLogout} onProfileUpdate={() => user && fetchProfile(user.id)} />} />
+      </Routes>
+    </div>
+  );
+};
+
+const App: React.FC = () => {
+  return (
     <HashRouter>
-      <div className="max-w-md mx-auto min-h-screen bg-background-light dark:bg-background-dark shadow-2xl relative overflow-x-hidden">
-        <Routes>
-          <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage onLogin={() => { }} />} />
-          <Route path="/" element={!user ? <Navigate to="/login" /> : <HomePage user={user} />} />
-          <Route path="/admin" element={user?.role === 'Administrador' ? <AdminDashboard /> : <Navigate to="/" />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/booking/:id" element={!user ? <Navigate to="/login" /> : <BookingDetails />} />
-          <Route path="/my-appointments" element={!user ? <Navigate to="/login" /> : <MyAppointments />} />
-          <Route path="/profile" element={!user ? <Navigate to="/login" /> : <ProfilePage user={user} onLogout={handleLogout} onProfileUpdate={() => user && fetchProfile(user.id)} />} />
-        </Routes>
-      </div>
+      <AppContent />
     </HashRouter>
   );
 };
