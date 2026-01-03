@@ -154,10 +154,15 @@ const HomePage: React.FC<Props> = ({ user }) => {
       </header>
 
       <main className="px-4 pt-6">
-        <h3 className="text-slate-900 dark:text-white text-2xl font-bold leading-tight mb-6">
-          Olá, {user.name.split(' ')[0]}. <br />
-          <span className="text-slate-500 dark:text-slate-400 text-xl font-medium">Onde será sua próxima aula?</span>
-        </h3>
+        <div className="w-full mb-6 relative h-40 rounded-2xl overflow-hidden shadow-md">
+          <img src="/school-header.jpg" alt="Escola" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-4">
+            <h3 className="text-white text-xl font-bold leading-tight">
+              Olá, {user.name.split(' ')[0]}.
+            </h3>
+            <p className="text-white/80 text-sm font-medium">Onde será sua próxima aula?</p>
+          </div>
+        </div>
 
         <div className="relative h-12 mb-6">
           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400">
