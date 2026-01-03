@@ -107,7 +107,7 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
         <div className="w-full bg-center bg-no-repeat bg-cover flex flex-col justify-end overflow-hidden rounded-lg min-h-[180px] shadow-sm relative" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1523050853064-85a19f03405c?q=80&w=800')" }}>
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
           <div className="relative z-10 p-4 flex items-center gap-3">
-            <img src="/nobre-agenda-logo.png" alt="Nobre Agenda" className="w-12 h-12 object-contain drop-shadow-lg" />
+            <img src="/school-logo.png" alt="Nobre Agenda" className="w-12 h-12 object-contain drop-shadow-lg" />
             <h2 className="text-white font-bold text-2xl">Nobre Agenda</h2>
           </div>
         </div>
