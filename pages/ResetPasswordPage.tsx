@@ -1,38 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { resetPasswordWithToken } from '../lib/authUtils';
 
 const ResetPasswordPage: React.FC = () => {
     const navigate = useNavigate();
-    const [password, setPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [token, setToken] = useState<string | null>(null);
 
     useEffect(() => {
-        // Verification of active session (recovery link session)
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (!session) {
-                setError('O link de recuperação é inválido ou expirou. Por favor, solicite uma nova redefinição.');
-                setTimeout(() => {
-                    navigate('/login');
-                }, 5000);
-            }
-        });
+        // Extract token from URL hash if present
+        const hash = window.location.hash;
+        const params = new URLSearchParams(hash.replace('#', '?'));
+        const accessToken = params.get('access_token');
+
+        if (accessToken) {
+            setToken(accessToken);
+        } else {
+            // Fallback: check session if SDK handled it automatically
+            supabase.auth.getSession().then(({ data: { session } }) => {
+                if (!session) {
+                    setError('O link de recuperação é inválido ou expirou. Por favor, solicite uma nova redefinição.');
+                    setTimeout(() => {
+                        navigate('/login');
+                    }, 5000);
+                }
+            });
+        }
     }, [navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
 
-        if (password.length < 6) {
+        if (newPassword.length < 6) {
             setError('A senha deve ter pelo menos 6 caracteres.');
             return;
         }
 
-        if (password !== confirmPassword) {
+        if (newPassword !== confirmPassword) {
             setError('As senhas não coincidem.');
             return;
         }
@@ -40,11 +51,16 @@ const ResetPasswordPage: React.FC = () => {
         setLoading(true);
 
         try {
-            const { error: updateError } = await supabase.auth.updateUser({
-                password: password
-            });
-
-            if (updateError) throw updateError;
+            if (token) {
+                // Use explicit token reset logic
+                await resetPasswordWithToken(token, newPassword);
+            } else {
+                // Use standard session update
+                const { error: updateError } = await supabase.auth.updateUser({
+                    password: newPassword
+                });
+                if (updateError) throw updateError;
+            }
 
             setSuccess(true);
             setTimeout(() => {
@@ -118,8 +134,8 @@ const ResetPasswordPage: React.FC = () => {
                             <input
                                 type={showPassword ? "text" : "password"}
                                 required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
                                 className="w-full h-14 rounded-2xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 pr-12 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none dark:text-white transition-all shadow-sm"
                                 placeholder="Pelo menos 6 caracteres"
                             />
