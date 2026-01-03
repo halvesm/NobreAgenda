@@ -6,6 +6,7 @@ import BookingDetails from './pages/BookingDetails';
 import MyAppointments from './pages/MyAppointments';
 import ProfilePage from './pages/ProfilePage';
 import AdminDashboard from './pages/AdminDashboard';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import { User } from './types';
 import { supabase } from './lib/supabase';
 
@@ -97,6 +98,7 @@ const App: React.FC = () => {
           <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage onLogin={() => { }} />} />
           <Route path="/" element={!user ? <Navigate to="/login" /> : <HomePage user={user} />} />
           <Route path="/admin" element={user?.role === 'Administrador' ? <AdminDashboard /> : <Navigate to="/" />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/booking/:id" element={!user ? <Navigate to="/login" /> : <BookingDetails />} />
           <Route path="/my-appointments" element={!user ? <Navigate to="/login" /> : <MyAppointments />} />
           <Route path="/profile" element={!user ? <Navigate to="/login" /> : <ProfilePage user={user} onLogout={handleLogout} onProfileUpdate={() => user && fetchProfile(user.id)} />} />
