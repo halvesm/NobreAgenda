@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { resetPasswordWithToken } from '../lib/authUtils';
+import { translateError } from '../lib/i18n';
 
 const ResetPasswordPage: React.FC = () => {
     const navigate = useNavigate();
@@ -67,7 +68,7 @@ const ResetPasswordPage: React.FC = () => {
                 navigate('/login');
             }, 3000);
         } catch (err: any) {
-            setError(err.message || 'Erro ao atualizar a senha.');
+            setError(translateError(err.message));
         } finally {
             setLoading(false);
         }

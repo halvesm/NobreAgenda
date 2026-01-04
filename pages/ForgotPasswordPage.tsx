@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { translateError } from '../lib/i18n';
 
 const ForgotPasswordPage: React.FC = () => {
     const navigate = useNavigate();
@@ -22,7 +23,7 @@ const ForgotPasswordPage: React.FC = () => {
             if (resetError) throw resetError;
             setSuccess(true);
         } catch (err: any) {
-            setError(err.message || 'Ocorreu um erro ao enviar o e-mail.');
+            setError(translateError(err.message));
         } finally {
             setLoading(false);
         }
