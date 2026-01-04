@@ -6,6 +6,7 @@ import BottomNav from '../components/BottomNav';
 import { supabase } from '../lib/supabase';
 import { useModal } from '../context/ModalContext';
 import { translateError } from '../lib/i18n';
+import { DEPARTMENTS } from '../constants';
 
 interface Props {
   user: User;
@@ -26,16 +27,6 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
 
   const [uploading, setUploading] = useState(false);
 
-  const DEPARTMENTS = [
-    'Linguagens',
-    'Matemática',
-    'Natureza',
-    'Humanas',
-    'Administração',
-    'Contabilidade',
-    'Enfermagem',
-    'Informática'
-  ];
 
   const toggleDarkMode = async () => {
     const newTheme = !isDarkMode ? 'dark' : 'light';

@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useModal } from '../context/ModalContext';
 import { translateError } from '../lib/i18n';
 import { User } from '../types';
-import { SPACES } from '../constants';
+import { SPACES, DEPARTMENTS } from '../constants';
 
 const AdminDashboard: React.FC = () => {
     const { showModal } = useModal();
@@ -448,10 +448,7 @@ const AdminDashboard: React.FC = () => {
                                     onChange={(e) => setEditingUser({ ...editingUser, department: e.target.value })}
                                     className="w-full h-11 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary dark:text-white"
                                 >
-                                    {[
-                                        'Linguagens', 'Matemática', 'Natureza', 'Humanas',
-                                        'Administração', 'Contabilidade', 'Enfermagem', 'Informática'
-                                    ].map(d => <option key={d} value={d}>{d}</option>)}
+                                    {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
                                 </select>
                             </div>
 

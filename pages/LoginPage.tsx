@@ -4,6 +4,7 @@ import { User } from '../types';
 import { supabase } from '../lib/supabase';
 import { useModal } from '../context/ModalContext';
 import { translateError } from '../lib/i18n';
+import { DEPARTMENTS } from '../constants';
 
 interface Props {
   onLogin: (user: User) => void;
@@ -21,16 +22,6 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const DEPARTMENTS = [
-    'Linguagens',
-    'Matemática',
-    'Natureza',
-    'Humanas',
-    'Administração',
-    'Contabilidade',
-    'Enfermagem',
-    'Informática'
-  ];
 
   const handleGoogleLogin = async () => {
     try {
@@ -68,6 +59,7 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
             data: {
               full_name: name,
               name: name,
+              department: department
             }
           }
         });

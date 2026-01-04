@@ -117,6 +117,21 @@ export const SPACES: Space[] = [
   }
 ];
 
+export const DEPARTMENTS = [
+  'Linguagens',
+  'Matemática',
+  'Natureza',
+  'Humanas',
+  'Administração',
+  'Contabilidade',
+  'Enfermagem',
+  'Informática',
+  'Diretor',
+  'Coordenadora',
+  'Secretário',
+  'Acessora Financeira'
+];
+
 export const COURSES = [
   'Administração',
   'Contabilidade',
