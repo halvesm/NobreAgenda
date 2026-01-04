@@ -30,6 +30,9 @@ export const translateError = (message: string): string => {
     if (lowerMessage.includes('flow state not found')) {
         return 'Sessão de login expirada ou inválida. Tente novamente.';
     }
+    if (lowerMessage.includes('auth session missing')) {
+        return 'Sessão de autorização ausente ou expirada. Recarregue a página.';
+    }
 
     // Fallback for common phrases
     if (lowerMessage.includes('network error') || lowerMessage.includes('failed to fetch')) {

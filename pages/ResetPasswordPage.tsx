@@ -15,23 +15,24 @@ const ResetPasswordPage: React.FC = () => {
     const [token, setToken] = useState<string | null>(null);
 
     useEffect(() => {
-        // Extract token from URL hash if present
         const hash = window.location.hash;
-        // Robust parsing for access_token anywhere in the hash string (important for HashRouter)
         const accessToken = hash.match(/access_token=([^&]*)/)?.[1];
 
         if (accessToken) {
             setToken(accessToken);
         } else {
-            // Fallback: check session if SDK handled it automatically
-            supabase.auth.getSession().then(({ data: { session } }) => {
+            // Give Supabase a moment to process the recovery link from hash
+            const checkSession = async () => {
+                // Short delay to avoid race condition with Supabase's internal hash processing
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                const { data: { session } } = await supabase.auth.getSession();
                 if (!session) {
                     setError('O link de recuperação é inválido ou expirou. Por favor, solicite uma nova redefinição.');
-                    setTimeout(() => {
-                        navigate('/login');
-                    }, 5000);
+                    setTimeout(() => navigate('/login'), 5000);
                 }
-            });
+            };
+            checkSession();
         }
     }, [navigate]);
 
