@@ -5,6 +5,7 @@ import { User } from '../types';
 import BottomNav from '../components/BottomNav';
 import { supabase } from '../lib/supabase';
 import { useModal } from '../context/ModalContext';
+import { translateError } from '../lib/i18n';
 
 interface Props {
   user: User;
@@ -94,7 +95,7 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
     } catch (error: any) {
       showModal({
         title: 'Erro de Upload',
-        message: error.message,
+        message: translateError(error.message),
         type: 'error'
       });
     } finally {

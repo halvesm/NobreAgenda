@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User } from '../types';
 import { supabase } from '../lib/supabase';
 import { useModal } from '../context/ModalContext';
+import { translateError } from '../lib/i18n';
 
 interface Props {
   onLogin: (user: User) => void;
@@ -44,7 +45,7 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
     } catch (err: any) {
       showModal({
         title: 'Erro de Login',
-        message: err.message || 'Erro ao conectar com Google.',
+        message: translateError(err.message),
         type: 'error'
       });
     } finally {
@@ -92,7 +93,7 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
         if (authError) throw authError;
       }
     } catch (err: any) {
-      setError(err.message || 'Ocorreu um erro.');
+      setError(translateError(err.message));
     } finally {
       setLoading(false);
     }

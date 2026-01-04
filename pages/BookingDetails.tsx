@@ -4,6 +4,7 @@ import { SPACES, COURSES, LESSONS } from '../constants';
 import { Booking } from '../types';
 import { supabase } from '../lib/supabase';
 import { useModal } from '../context/ModalContext';
+import { translateError } from '../lib/i18n';
 
 interface Props {
   onBook?: (booking: Booking) => void;
@@ -248,7 +249,7 @@ const BookingDetails: React.FC<Props> = ({ onBook }) => {
     } catch (error: any) {
       showModal({
         title: 'Erro',
-        message: `❌ Erro ao agendar: ${error.message}`,
+        message: translateError(error.message),
         type: 'error'
       });
     } finally {

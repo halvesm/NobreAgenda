@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useModal } from '../context/ModalContext';
+import { translateError } from '../lib/i18n';
 import { User } from '../types';
 import { SPACES } from '../constants';
 
@@ -91,7 +92,7 @@ const AdminDashboard: React.FC = () => {
         } catch (error: any) {
             showModal({
                 title: 'Erro',
-                message: 'Erro ao atualizar usuário: ' + error.message,
+                message: translateError(error.message),
                 type: 'error'
             });
         }
@@ -123,7 +124,7 @@ const AdminDashboard: React.FC = () => {
         } catch (error: any) {
             showModal({
                 title: 'Erro',
-                message: 'Erro ao atualizar status: ' + error.message,
+                message: translateError(error.message),
                 type: 'error'
             });
         }
@@ -145,7 +146,7 @@ const AdminDashboard: React.FC = () => {
         } catch (error: any) {
             showModal({
                 title: 'Erro',
-                message: 'Erro ao salvar status: ' + error.message,
+                message: translateError(error.message),
                 type: 'error'
             });
         }
@@ -352,7 +353,7 @@ const AdminDashboard: React.FC = () => {
                                                                     } else {
                                                                         showModal({
                                                                             title: 'Erro',
-                                                                            message: 'Erro ao cancelar: ' + error.message,
+                                                                            message: translateError(error.message),
                                                                             type: 'error'
                                                                         });
                                                                     }

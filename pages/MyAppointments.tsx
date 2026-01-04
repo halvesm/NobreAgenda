@@ -5,6 +5,7 @@ import { SPACES } from '../constants';
 import BottomNav from '../components/BottomNav';
 import { supabase } from '../lib/supabase';
 import { useModal } from '../context/ModalContext';
+import { translateError } from '../lib/i18n';
 
 const MyAppointments: React.FC = () => {
   const { showModal } = useModal();
@@ -65,7 +66,7 @@ const MyAppointments: React.FC = () => {
         } catch (error: any) {
           showModal({
             title: 'Erro',
-            message: 'Erro ao cancelar agendamento: ' + error.message,
+            message: translateError(error.message),
             type: 'error'
           });
         }
