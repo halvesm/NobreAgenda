@@ -126,10 +126,10 @@ export const DEPARTMENTS = [
   'Contabilidade',
   'Enfermagem',
   'Informática',
-  'Diretor',
-  'Coordenadora',
-  'Secretário',
-  'Acessora Financeira'
+  'Direção',
+  'Coordenação',
+  'Secretaria',
+  'Acessoria Financeira'
 ];
 
 export const COURSES = [
