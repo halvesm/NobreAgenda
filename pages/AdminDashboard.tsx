@@ -196,7 +196,9 @@ const AdminDashboard: React.FC = () => {
                 <button onClick={() => navigate(-1)} className="text-slate-900 dark:text-white flex size-10 items-center justify-center hover:bg-black/5 rounded-full">
                     <span className="material-symbols-outlined">arrow_back</span>
                 </button>
-                <h2 className="text-slate-900 dark:text-white text-lg font-bold flex-1 text-center pr-10">Painel Admin</h2>
+                <h2 className="text-slate-900 dark:text-white text-lg font-bold flex-1 text-center pr-10">
+                    {currentUserRole === 'Administrador' ? 'Painel Admin' : 'Núcleo Gestor'}
+                </h2>
             </header>
 
             <div className="flex p-4 gap-2">
