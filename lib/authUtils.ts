@@ -7,11 +7,11 @@ import { supabase } from './supabase';
  * @param accessToken The token extracted from the recovery email link
  * @param newPassword The new password to set for the user
  */
-export const resetPasswordWithToken = async (accessToken: string, newPassword: string) => {
-    // 1. Manually set the session using the access token
+export const resetPasswordWithToken = async (accessToken: string, refreshToken: string, newPassword: string) => {
+    // 1. Manually set the session using the tokens
     const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
         access_token: accessToken,
-        refresh_token: '', // Not needed for immediate update
+        refresh_token: refreshToken,
     });
 
     if (sessionError) throw sessionError;

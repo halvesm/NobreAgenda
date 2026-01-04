@@ -12,25 +12,28 @@ const ResetPasswordPage: React.FC = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
-    const [token, setToken] = useState<string | null>(null);
+    const [tokens, setTokens] = useState<{ access: string; refresh: string } | null>(null);
+    const [verifying, setVerifying] = useState(true);
 
     useEffect(() => {
         const hash = window.location.hash;
         const accessToken = hash.match(/access_token=([^&]*)/)?.[1];
+        const refreshToken = hash.match(/refresh_token=([^&]*)/)?.[1];
 
         if (accessToken) {
-            setToken(accessToken);
+            setTokens({ access: accessToken, refresh: refreshToken || '' });
+            setVerifying(false);
         } else {
-            // Give Supabase a moment to process the recovery link from hash
             const checkSession = async () => {
-                // Short delay to avoid race condition with Supabase's internal hash processing
-                await new Promise(resolve => setTimeout(resolve, 500));
+                // Short wait for SDK to parse hash if it hasn't yet
+                await new Promise(resolve => setTimeout(resolve, 800));
 
                 const { data: { session } } = await supabase.auth.getSession();
                 if (!session) {
                     setError('O link de recuperação é inválido ou expirou. Por favor, solicite uma nova redefinição.');
                     setTimeout(() => navigate('/login'), 5000);
                 }
+                setVerifying(false);
             };
             checkSession();
         }
@@ -53,15 +56,18 @@ const ResetPasswordPage: React.FC = () => {
         setLoading(true);
 
         try {
-            if (token) {
-                // Use explicit token reset logic
-                await resetPasswordWithToken(token, newPassword);
-            } else {
-                // Use standard session update
+            // Check session first
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (session) {
                 const { error: updateError } = await supabase.auth.updateUser({
                     password: newPassword
                 });
                 if (updateError) throw updateError;
+            } else if (tokens) {
+                await resetPasswordWithToken(tokens.access, tokens.refresh, newPassword);
+            } else {
+                throw new Error('Auth session missing');
             }
 
             setSuccess(true);
@@ -74,6 +80,14 @@ const ResetPasswordPage: React.FC = () => {
             setLoading(false);
         }
     };
+
+    if (verifying) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-background-light dark:bg-background-dark">
+                <div className="size-10 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+            </div>
+        );
+    }
 
     if (success) {
         return (
