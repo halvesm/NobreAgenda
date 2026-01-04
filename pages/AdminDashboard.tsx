@@ -9,15 +9,43 @@ import { SPACES } from '../constants';
 const AdminDashboard: React.FC = () => {
     const { showModal } = useModal();
     const navigate = useNavigate();
+    const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+
+    useEffect(() => {
+        const checkAuth = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profile) {
+                    setCurrentUserRole(profile.role);
+                    if (profile.role !== 'Administrador' && profile.role !== 'Núcleo Gestor') {
+                        navigate('/');
+                    }
+                    if (profile.role === 'Núcleo Gestor') {
+                        setActiveTab('bookings');
+                    }
+                }
+            }
+        };
+        checkAuth();
+    }, [navigate]);
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeTab, setActiveTab] = useState<'users' | 'spaces' | 'bookings'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'spaces' | 'bookings'>('bookings');
     const [spacesStatus, setSpacesStatus] = useState<Record<string, { is_unavailable: boolean; reason: string }>>({});
     const [allBookings, setAllBookings] = useState<any[]>([]);
 
     useEffect(() => {
+        // Restricted access for Núcleo Gestor
+        const userRole = localStorage.getItem('user_role'); // We'll need to ensure this is set or passed
+
         if (activeTab === 'users') fetchUsers();
         if (activeTab === 'spaces') fetchSpacesStatus();
         if (activeTab === 'bookings') fetchAllBookings();
@@ -167,18 +195,22 @@ const AdminDashboard: React.FC = () => {
             </header>
 
             <div className="flex p-4 gap-2">
-                <button
-                    onClick={() => setActiveTab('users')}
-                    className={`flex-1 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'users' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-500'}`}
-                >
-                    Usuários
-                </button>
-                <button
-                    onClick={() => setActiveTab('spaces')}
-                    className={`flex-1 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'spaces' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-500'}`}
-                >
-                    Ambientes
-                </button>
+                {currentUserRole === 'Administrador' && (
+                    <>
+                        <button
+                            onClick={() => setActiveTab('users')}
+                            className={`flex-1 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'users' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-500'}`}
+                        >
+                            Usuários
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('spaces')}
+                            className={`flex-1 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'spaces' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-500'}`}
+                        >
+                            Ambientes
+                        </button>
+                    </>
+                )}
                 <button
                     onClick={() => setActiveTab('bookings')}
                     className={`flex-1 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'bookings' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-500'}`}
@@ -398,7 +430,7 @@ const AdminDashboard: React.FC = () => {
                                 >
                                     <option value="Professor(a)">Professor(a)</option>
                                     <option value="Administrador">Administrador</option>
-                                    <option value="Coordenador(a)">Coordenador(a)</option>
+                                    <option value="Núcleo Gestor">Núcleo Gestor</option>
                                 </select>
                             </div>
                             <div>

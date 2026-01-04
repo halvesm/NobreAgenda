@@ -135,11 +135,11 @@ const HomePage: React.FC<Props> = ({ user }) => {
           <h2 className="text-slate-900 dark:text-white text-lg font-bold leading-tight">Seleção de Espaço</h2>
         </div>
         <div className="flex gap-2">
-          {user.role === 'Administrador' && (
+          {(user.role === 'Administrador' || user.role === 'Núcleo Gestor') && (
             <button
               onClick={() => navigate('/admin')}
               className="flex size-10 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800 hover:opacity-80 transition-opacity"
-              title="Painel Administrativo"
+              title={user.role === 'Administrador' ? 'Painel Administrativo' : 'Painel Gestor'}
             >
               <span className="material-symbols-outlined text-primary">admin_panel_settings</span>
             </button>
