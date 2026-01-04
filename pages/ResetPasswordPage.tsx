@@ -12,31 +12,39 @@ const ResetPasswordPage: React.FC = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
-    const [tokens, setTokens] = useState<{ access: string; refresh: string } | null>(null);
     const [verifying, setVerifying] = useState(true);
 
     useEffect(() => {
-        const hash = window.location.hash;
-        const accessToken = hash.match(/access_token=([^&]*)/)?.[1];
-        const refreshToken = hash.match(/refresh_token=([^&]*)/)?.[1];
+        const handleAuth = async () => {
+            const hash = window.location.hash;
+            const accessToken = hash.match(/access_token=([^&]*)/)?.[1];
+            const refreshToken = hash.match(/refresh_token=([^&]*)/)?.[1];
 
-        if (accessToken) {
-            setTokens({ access: accessToken, refresh: refreshToken || '' });
-            setVerifying(false);
-        } else {
-            const checkSession = async () => {
-                // Short wait for SDK to parse hash if it hasn't yet
-                await new Promise(resolve => setTimeout(resolve, 800));
-
+            if (accessToken) {
+                // If we have tokens in the URL, establish the session IMMEDIATELY
+                try {
+                    const { error: sessionError } = await supabase.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken || '',
+                    });
+                    if (sessionError) throw sessionError;
+                } catch (err: any) {
+                    console.error('Session error:', err);
+                    setError('O link de recuperação é inválido ou expirou.');
+                }
+            } else {
+                // Short wait for SDK to parse hash if it's doing it automatically (standard behavior)
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 const { data: { session } } = await supabase.auth.getSession();
                 if (!session) {
                     setError('O link de recuperação é inválido ou expirou. Por favor, solicite uma nova redefinição.');
                     setTimeout(() => navigate('/login'), 5000);
                 }
-                setVerifying(false);
-            };
-            checkSession();
-        }
+            }
+            setVerifying(false);
+        };
+
+        handleAuth();
     }, [navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -56,19 +64,19 @@ const ResetPasswordPage: React.FC = () => {
         setLoading(true);
 
         try {
-            // Check session first
+            // By now, we MUST have a session because of handleAuth above
             const { data: { session } } = await supabase.auth.getSession();
 
-            if (session) {
-                const { error: updateError } = await supabase.auth.updateUser({
-                    password: newPassword
-                });
-                if (updateError) throw updateError;
-            } else if (tokens) {
-                await resetPasswordWithToken(tokens.access, tokens.refresh, newPassword);
-            } else {
-                throw new Error('Auth session missing');
+            if (!session) {
+                // If somehow the session is gone, try to reload the page or redirect
+                throw new Error('Sessão de autorização ausente. Recarregue a página.');
             }
+
+            const { error: updateError } = await supabase.auth.updateUser({
+                password: newPassword
+            });
+
+            if (updateError) throw updateError;
 
             setSuccess(true);
             setTimeout(() => {
