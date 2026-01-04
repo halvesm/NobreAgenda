@@ -23,10 +23,15 @@ const AdminDashboard: React.FC = () => {
 
                 if (profile) {
                     setCurrentUserRole(profile.role);
-                    if (profile.role !== 'Administrador' && profile.role !== 'Núcleo Gestor') {
+                    const isAuthorized = profile.role === 'Administrador' ||
+                        profile.role === 'Núcleo Gestor' ||
+                        profile.role === 'Coordenador' ||
+                        profile.role === 'Coordenador(a)';
+
+                    if (!isAuthorized) {
                         navigate('/');
                     }
-                    if (profile.role === 'Núcleo Gestor') {
+                    if (profile.role !== 'Administrador') {
                         setActiveTab('bookings');
                     }
                 }
@@ -431,6 +436,7 @@ const AdminDashboard: React.FC = () => {
                                     <option value="Professor(a)">Professor(a)</option>
                                     <option value="Administrador">Administrador</option>
                                     <option value="Núcleo Gestor">Núcleo Gestor</option>
+                                    <option value="Coordenador(a)">Coordenador(a)</option>
                                 </select>
                             </div>
                             <div>
