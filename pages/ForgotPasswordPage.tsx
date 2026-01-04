@@ -113,8 +113,8 @@ const ForgotPasswordPage: React.FC = () => {
                         </div>
                         <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">E-mail Enviado!</h2>
                         <p className="text-slate-500 dark:text-slate-400 text-sm mb-8 leading-relaxed px-4">
-                            Enviamos um link de recuperação para <strong>{email}</strong>.
-                            Verifique sua caixa de entrada e spam.
+                            Enviamos um link de recuperação para <strong>{email}</strong>.<br /><br />
+                            O link é válido por <strong>30 minutos</strong>. Verifique sua caixa de entrada e spam.
                         </p>
                         <div className="space-y-3">
                             <button

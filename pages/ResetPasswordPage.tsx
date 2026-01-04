@@ -17,8 +17,8 @@ const ResetPasswordPage: React.FC = () => {
     useEffect(() => {
         // Extract token from URL hash if present
         const hash = window.location.hash;
-        const params = new URLSearchParams(hash.replace('#', '?'));
-        const accessToken = params.get('access_token');
+        // Robust parsing for access_token anywhere in the hash string (important for HashRouter)
+        const accessToken = hash.match(/access_token=([^&]*)/)?.[1];
 
         if (accessToken) {
             setToken(accessToken);
