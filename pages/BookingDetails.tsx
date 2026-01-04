@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { SPACES, COURSES, LESSONS } from '../constants';
 import { Booking } from '../types';
 import { supabase } from '../lib/supabase';
+import { useModal } from '../context/ModalContext';
 
 interface Props {
   onBook?: (booking: Booking) => void;
@@ -13,6 +14,7 @@ const useQuery = () => {
 };
 
 const BookingDetails: React.FC<Props> = ({ onBook }) => {
+  const { showModal } = useModal();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const query = useQuery();
@@ -75,7 +77,11 @@ const BookingDetails: React.FC<Props> = ({ onBook }) => {
       .single();
 
     if (data && data.is_unavailable) {
-      alert(`Este ambiente está indisponível.\nMotivo: ${data.reason || 'Manutenção'}`);
+      showModal({
+        title: 'Ambiente Indisponível',
+        message: `Este ambiente está indisponível.\nMotivo: ${data.reason || 'Manutenção'}`,
+        type: 'error'
+      });
       navigate('/');
     }
   };
@@ -134,7 +140,11 @@ const BookingDetails: React.FC<Props> = ({ onBook }) => {
 
   const handleConfirm = async () => {
     if (!selectedDate || selectedLessons.length === 0 || !selectedCourse) {
-      alert("Por favor, selecione a data, as aulas e o curso.");
+      showModal({
+        title: 'Dados Incompletos',
+        message: 'Por favor, selecione a data, as aulas e o curso.',
+        type: 'info'
+      });
       return;
     }
 
@@ -180,7 +190,11 @@ const BookingDetails: React.FC<Props> = ({ onBook }) => {
 
           if (conflicts.length > 0) {
             const conflictNames = conflicts.map(index => LESSONS[index]).join(', ');
-            alert(`❌ Conflito de agendamento!\n\nUma ou mais aulas já foram agendadas para este dia:\n${conflictNames}\n\nPor favor, escolha outros horários.`);
+            showModal({
+              title: '❌ Conflito de agendamento',
+              message: `Uma ou mais aulas já foram agendadas para este dia:\n${conflictNames}\n\nPor favor, escolha outros horários.`,
+              type: 'error'
+            });
             setLoading(false);
             return;
           }
@@ -208,7 +222,11 @@ const BookingDetails: React.FC<Props> = ({ onBook }) => {
           .single();
 
         if (error) throw error;
-        alert('✅ Agendamento atualizado com sucesso!');
+        showModal({
+          title: 'Sucesso',
+          message: '✅ Agendamento atualizado com sucesso!',
+          type: 'success'
+        });
       } else {
         // INSERT new
         const { data, error } = await supabase
@@ -218,13 +236,21 @@ const BookingDetails: React.FC<Props> = ({ onBook }) => {
           .single();
 
         if (error) throw error;
-        alert('✅ Agendamento realizado com sucesso!\n\nSeu agendamento foi confirmado.');
+        showModal({
+          title: 'Sucesso',
+          message: '✅ Agendamento realizado com sucesso!\n\nSeu agendamento foi confirmado.',
+          type: 'success'
+        });
       }
 
       if (onBook && !editId) onBook({ id: 'temp', ...bookingData } as any); // Mock for prop callback if needed
       navigate('/my-appointments');
     } catch (error: any) {
-      alert(`❌ Erro ao agendar: ${error.message}`);
+      showModal({
+        title: 'Erro',
+        message: `❌ Erro ao agendar: ${error.message}`,
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }

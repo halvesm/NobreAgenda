@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { User } from '../types';
 import BottomNav from '../components/BottomNav';
 import { supabase } from '../lib/supabase';
+import { useModal } from '../context/ModalContext';
 
 interface Props {
   user: User;
@@ -12,6 +13,7 @@ interface Props {
 }
 
 const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
+  const { showModal } = useModal();
   const navigate = useNavigate();
   const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
   const [isEditing, setIsEditing] = useState(false);
@@ -90,7 +92,11 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
       // Let's keep manual save to be consistent, but we could allow auto-save here too.
 
     } catch (error: any) {
-      alert(error.message);
+      showModal({
+        title: 'Erro de Upload',
+        message: error.message,
+        type: 'error'
+      });
     } finally {
       setUploading(false);
     }
@@ -117,7 +123,11 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
 
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
-      alert('Erro ao atualizar perfil.');
+      showModal({
+        title: 'Erro ao Salvar',
+        message: 'Ocorreu um erro ao atualizar o seu perfil. Por favor, tente novamente.',
+        type: 'error'
+      });
     }
   };
 

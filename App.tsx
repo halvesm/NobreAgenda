@@ -115,10 +115,14 @@ const AppContent: React.FC = () => {
   );
 };
 
+import { ModalProvider } from './context/ModalContext';
+
 const App: React.FC = () => {
   return (
     <HashRouter>
-      <AppContent />
+      <ModalProvider>
+        <AppContent />
+      </ModalProvider>
     </HashRouter>
   );
 };

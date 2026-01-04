@@ -4,8 +4,10 @@ import { Booking } from '../types';
 import { SPACES } from '../constants';
 import BottomNav from '../components/BottomNav';
 import { supabase } from '../lib/supabase';
+import { useModal } from '../context/ModalContext';
 
 const MyAppointments: React.FC = () => {
+  const { showModal } = useModal();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'history'>('upcoming');
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -41,21 +43,34 @@ const MyAppointments: React.FC = () => {
   }, []);
 
   const handleCancelBooking = async (bookingId: string) => {
-    if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return;
+    showModal({
+      title: 'Confirmar Cancelamento',
+      message: 'Tem certeza que deseja cancelar este agendamento?',
+      type: 'confirm',
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase
+            .from('bookings')
+            .delete()
+            .eq('id', bookingId);
 
-    try {
-      const { error } = await supabase
-        .from('bookings')
-        .delete()
-        .eq('id', bookingId);
+          if (error) throw error;
 
-      if (error) throw error;
-
-      setBookings(prev => prev.filter(b => b.id !== bookingId));
-      alert('Agendamento cancelado com sucesso!');
-    } catch (error: any) {
-      alert('Erro ao cancelar agendamento: ' + error.message);
-    }
+          setBookings(prev => prev.filter(b => b.id !== bookingId));
+          showModal({
+            title: 'Cancelado',
+            message: 'Agendamento cancelado com sucesso!',
+            type: 'success'
+          });
+        } catch (error: any) {
+          showModal({
+            title: 'Erro',
+            message: 'Erro ao cancelar agendamento: ' + error.message,
+            type: 'error'
+          });
+        }
+      }
+    });
   };
 
   const filteredBookings = bookings.filter(b => {

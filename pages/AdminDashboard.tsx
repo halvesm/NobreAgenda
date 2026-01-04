@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useModal } from '../context/ModalContext';
 import { User } from '../types';
 import { SPACES } from '../constants';
 
 const AdminDashboard: React.FC = () => {
+    const { showModal } = useModal();
     const navigate = useNavigate();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
@@ -81,9 +83,17 @@ const AdminDashboard: React.FC = () => {
 
             setUsers(users.map(u => u.id === editingUser.id ? editingUser : u));
             setEditingUser(null);
-            alert('Usuário atualizado com sucesso!');
+            showModal({
+                title: 'Sucesso',
+                message: 'Usuário atualizado com sucesso!',
+                type: 'success'
+            });
         } catch (error: any) {
-            alert('Erro ao atualizar usuário: ' + error.message);
+            showModal({
+                title: 'Erro',
+                message: 'Erro ao atualizar usuário: ' + error.message,
+                type: 'error'
+            });
         }
     };
 
@@ -93,27 +103,51 @@ const AdminDashboard: React.FC = () => {
             let newReason = currentReason;
 
             if (newStatus) {
-                const reason = prompt("Qual o motivo da indisponibilidade? (Ex: Limpeza, Manutenção)", "Manutenção");
-                if (reason === null) return; // Cancelled
-                newReason = reason;
+                showModal({
+                    title: 'Motivo da Indisponibilidade',
+                    message: 'Qual o motivo da indisponibilidade? (Ex: Limpeza, Manutenção)',
+                    type: 'prompt',
+                    defaultValue: 'Manutenção',
+                    placeholder: 'Descreva o motivo...',
+                    onConfirm: async (reason) => {
+                        if (reason) {
+                            await saveSpaceStatus(spaceId, newStatus, reason);
+                        }
+                    }
+                });
+                return;
             } else {
                 newReason = '';
+                await saveSpaceStatus(spaceId, newStatus, newReason);
             }
+        } catch (error: any) {
+            showModal({
+                title: 'Erro',
+                message: 'Erro ao atualizar status: ' + error.message,
+                type: 'error'
+            });
+        }
+    };
 
+    const saveSpaceStatus = async (spaceId: string, isUnavailable: boolean, reason: string) => {
+        try {
             const { error } = await supabase
                 .from('space_maintenance')
                 .upsert({
                     space_id: spaceId,
-                    is_unavailable: newStatus,
-                    reason: newReason,
+                    is_unavailable: isUnavailable,
+                    reason: reason,
                     updated_at: new Date()
                 }, { onConflict: 'space_id' });
 
             if (error) throw error;
-
             await fetchSpacesStatus();
         } catch (error: any) {
-            alert('Erro ao atualizar status: ' + error.message);
+            showModal({
+                title: 'Erro',
+                message: 'Erro ao salvar status: ' + error.message,
+                type: 'error'
+            });
         }
     };
 
@@ -301,12 +335,29 @@ const AdminDashboard: React.FC = () => {
                                                         Editar
                                                     </button>
                                                     <button
-                                                        onClick={async () => {
-                                                            if (confirm('Tem certeza que deseja cancelar este agendamento?')) {
-                                                                const { error } = await supabase.from('bookings').delete().eq('id', booking.id);
-                                                                if (!error) fetchAllBookings();
-                                                                else alert('Erro ao cancelar: ' + error.message);
-                                                            }
+                                                        onClick={() => {
+                                                            showModal({
+                                                                title: 'Confirmar Cancelamento',
+                                                                message: 'Tem certeza que deseja cancelar este agendamento?',
+                                                                type: 'confirm',
+                                                                onConfirm: async () => {
+                                                                    const { error } = await supabase.from('bookings').delete().eq('id', booking.id);
+                                                                    if (!error) {
+                                                                        fetchAllBookings();
+                                                                        showModal({
+                                                                            title: 'Cancelado',
+                                                                            message: 'Agendamento cancelado com sucesso!',
+                                                                            type: 'success'
+                                                                        });
+                                                                    } else {
+                                                                        showModal({
+                                                                            title: 'Erro',
+                                                                            message: 'Erro ao cancelar: ' + error.message,
+                                                                            type: 'error'
+                                                                        });
+                                                                    }
+                                                                }
+                                                            });
                                                         }}
                                                         className="flex-1 sm:flex-none px-3 py-1.5 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-bold transition-colors whitespace-nowrap flex items-center justify-center gap-1"
                                                     >

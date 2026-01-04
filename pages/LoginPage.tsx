@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User } from '../types';
 import { supabase } from '../lib/supabase';
+import { useModal } from '../context/ModalContext';
 
 interface Props {
   onLogin: (user: User) => void;
@@ -9,6 +10,7 @@ interface Props {
 
 const LoginPage: React.FC<Props> = ({ onLogin }) => {
   const navigate = useNavigate();
+  const { showModal } = useModal();
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -72,6 +74,14 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
             ]);
 
           if (profileError) throw profileError;
+
+          // Show success modal
+          showModal({
+            title: 'Seja bem-vindo(a)! 🎉',
+            message: 'Você já pode usar a plataforma para agendar os ambientes para suas aulas.',
+            type: 'success',
+            confirmText: 'Começar Agora'
+          });
 
           // Auto login is handled by session listener in App.tsx
         }
