@@ -1,5 +1,12 @@
 <div align="center">
-  <img width="1200" height="475" alt="GHBanner" src="https://i.imgur.com/RbBUyu1.jpeg" />
+  <a href="https://instagram.com/h_alves" target="_blank">
+    <img
+      width="1200"
+      height="475"
+      alt="GHBanner"
+      src="https://i.imgur.com/RbBUyu1.jpeg"
+    />
+  </a>
 </div>
 
 # Sistema de Agendamento de Espaços Educacionais
