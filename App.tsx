@@ -59,11 +59,14 @@ const AppContent: React.FC = () => {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data } = await supabase
+      // Usamos maybeSingle() em vez de single() para não disparar erro caso não exista
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
+
+      if (error) throw error;
 
       if (data) {
         const profile = data as User;
@@ -78,9 +81,36 @@ const AppContent: React.FC = () => {
           }
           localStorage.setItem('theme', profile.theme);
         }
+      } else {
+        // Perfil não encontrado, tentar recriar a partir dos metadados da autenticação
+        // Isso resolve o problema de usuários que foram apagados mas a conta de auth permaneceu
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser) {
+          const newProfile = {
+            id: authUser.id,
+            email: authUser.email,
+            name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || 'Usuário',
+            role: 'Professor(a)', // Role padrão
+            department: authUser.user_metadata?.department || 'Linguagens', // Departamento padrão ou do meta
+            avatar: authUser.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${authUser.user_metadata?.full_name || 'U'}`,
+            theme: 'light'
+          };
+
+          const { data: createdData, error: insertError } = await supabase
+            .from('profiles')
+            .upsert([newProfile])
+            .select()
+            .single();
+
+          if (insertError) throw insertError;
+
+          if (createdData) {
+            setUser(createdData as User);
+          }
+        }
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error fetching/creating profile:', error);
     } finally {
       setLoading(false);
     }
