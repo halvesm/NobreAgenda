@@ -22,16 +22,25 @@ const AdminDashboard: React.FC = () => {
                     .single();
 
                 if (profile) {
-                    setCurrentUserRole(profile.role);
-                    const isAuthorized = profile.role === 'Administrador' ||
-                        profile.role === 'Núcleo Gestor' ||
-                        profile.role === 'Coordenador' ||
-                        profile.role === 'Coordenador(a)';
+                    const typedProfile = profile as User;
+                    setCurrentUserRole(typedProfile.role);
+
+                    const isAuthorized = typedProfile.role === 'SuperAdministrador' ||
+                        typedProfile.role === 'Administrador' ||
+                        typedProfile.role === 'Núcleo Gestor' ||
+                        typedProfile.role === 'Coordenador' ||
+                        typedProfile.role === 'Coordenador(a)' ||
+                        typedProfile.role === 'Regente';
 
                     if (!isAuthorized) {
                         navigate('/');
                     }
-                    if (profile.role !== 'Administrador') {
+
+                    // Se for Administrador (legacy) ou SuperAdministrador, mantém 'bookings' ou 'users'
+                    // Se for Regente, o padrão é 'bookings' e não pode ver 'users'
+                    if (typedProfile.role === 'Regente') {
+                        setActiveTab('bookings');
+                    } else if (profile.role !== 'Administrador' && profile.role !== 'SuperAdministrador') {
                         setActiveTab('bookings');
                     }
                 }
@@ -58,12 +67,23 @@ const AdminDashboard: React.FC = () => {
 
     const fetchAllBookings = async () => {
         setLoading(true);
-        // Fetch bookings joining with profiles to get the user name
-        const { data, error } = await supabase
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        if (!profile) return;
+
+        let query = supabase
             .from('bookings')
             .select('*, profiles(name)')
-            .order('date', { ascending: false })
-            .limit(50);
+            .order('date', { ascending: false });
+
+        // Se for Regente, filtra apenas os agendamentos do seu espaço
+        if (profile.role === 'Regente' && profile.assigned_space_id) {
+            query = query.eq('space_id', profile.assigned_space_id);
+        }
+
+        const { data, error } = await query.limit(50);
 
         if (error) {
             console.error('Error fetching bookings:', error);
@@ -90,7 +110,19 @@ const AdminDashboard: React.FC = () => {
     };
 
     const fetchSpacesStatus = async () => {
-        const { data } = await supabase.from('space_maintenance').select('*');
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        if (!profile) return;
+
+        let query = supabase.from('space_maintenance').select('*');
+
+        if (profile.role === 'Regente' && profile.assigned_space_id) {
+            query = query.eq('space_id', profile.assigned_space_id);
+        }
+
+        const { data } = await query;
         if (data) {
             const map: any = {};
             data.forEach((item: any) => {
@@ -109,7 +141,8 @@ const AdminDashboard: React.FC = () => {
                 .update({
                     name: editingUser.name,
                     role: editingUser.role,
-                    department: editingUser.department
+                    department: editingUser.department,
+                    assigned_space_id: editingUser.assigned_space_id
                 })
                 .eq('id', editingUser.id);
 
@@ -197,12 +230,12 @@ const AdminDashboard: React.FC = () => {
                     <span className="material-symbols-outlined">arrow_back</span>
                 </button>
                 <h2 className="text-slate-900 dark:text-white text-lg font-bold flex-1 text-center pr-10">
-                    {currentUserRole === 'Administrador' ? 'Painel Admin' : 'Núcleo Gestor'}
+                    {currentUserRole === 'SuperAdministrador' ? 'Super Admin' : (currentUserRole === 'Administrador' ? 'Painel Admin' : (currentUserRole === 'Regente' ? 'Painel Regente' : 'Núcleo Gestor'))}
                 </h2>
             </header>
 
             <div className="flex p-4 gap-2">
-                {currentUserRole === 'Administrador' && (
+                {(currentUserRole === 'Administrador' || currentUserRole === 'SuperAdministrador') && (
                     <>
                         <button
                             onClick={() => setActiveTab('users')}
@@ -210,13 +243,15 @@ const AdminDashboard: React.FC = () => {
                         >
                             Usuários
                         </button>
-                        <button
-                            onClick={() => setActiveTab('spaces')}
-                            className={`flex-1 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'spaces' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-500'}`}
-                        >
-                            Ambientes
-                        </button>
                     </>
+                )}
+                {(currentUserRole === 'Administrador' || currentUserRole === 'SuperAdministrador' || currentUserRole === 'Regente') && (
+                    <button
+                        onClick={() => setActiveTab('spaces')}
+                        className={`flex-1 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'spaces' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-500'}`}
+                    >
+                        Ambientes
+                    </button>
                 )}
                 <button
                     onClick={() => setActiveTab('bookings')}
@@ -274,7 +309,12 @@ const AdminDashboard: React.FC = () => {
                     </>
                 ) : activeTab === 'spaces' ? (
                     <div className="space-y-4 pb-10">
-                        {SPACES.map(space => {
+                        {SPACES.filter(space => {
+                            if (currentUserRole === 'Regente') {
+                                return spacesStatus[space.id] !== undefined;
+                            }
+                            return true;
+                        }).map(space => {
                             const status = spacesStatus[space.id] || { is_unavailable: false, reason: '' };
                             return (
                                 <div key={space.id} className={`p-4 rounded-xl border flex items-center justify-between ${status.is_unavailable ? 'bg-red-50 border-red-200 dark:bg-red-900/10 dark:border-red-800' : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-gray-700'}`}>
@@ -314,9 +354,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 ) : (
                     <div className="space-y-4 pb-10">
-                        {/* Bookings Management Tab */}
                         <div className="mb-4 flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                            {/* Simple Filter for Date could be added here, currently defaulting to all/limit 50 or recent */}
                             <p className="text-sm text-gray-500">Exibindo os agendamentos mais recentes.</p>
                         </div>
 
@@ -326,12 +364,11 @@ const AdminDashboard: React.FC = () => {
                             <div className="space-y-3">
                                 {allBookings.map((booking: any) => {
                                     const space = SPACES.find(s => s.id === booking.space_id);
-                                    const dateObj = new Date(booking.date + 'T12:00:00'); // Force simple date
+                                    const dateObj = new Date(booking.date + 'T12:00:00');
 
                                     return (
                                         <div key={booking.id} className="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
                                             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-                                                {/* Icon & Main Info */}
                                                 <div className="flex gap-3 flex-1 min-w-0">
                                                     <div className="size-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
                                                         <span className="material-symbols-outlined text-[20px]">{space?.icon || 'event'}</span>
@@ -341,8 +378,6 @@ const AdminDashboard: React.FC = () => {
                                                         <h3 className="font-bold text-slate-900 dark:text-white text-sm leading-tight truncate pr-2">
                                                             {space?.name || booking.space_name}
                                                         </h3>
-
-                                                        {/* Details Grid */}
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
                                                             <div className="flex items-center gap-1.5 whitespace-nowrap">
                                                                 <span className="material-symbols-outlined text-[14px] text-gray-400">calendar_today</span>
@@ -366,7 +401,6 @@ const AdminDashboard: React.FC = () => {
                                                     </div>
                                                 </div>
 
-                                                {/* Actions */}
                                                 <div className="flex sm:flex-col gap-2 w-full sm:w-auto shrink-0 mt-2 sm:mt-0 pl-13 sm:pl-0">
                                                     <button
                                                         onClick={() => navigate(`/booking/${booking.space_id}?editId=${booking.id}`)}
@@ -437,10 +471,25 @@ const AdminDashboard: React.FC = () => {
                                 >
                                     <option value="Professor(a)">Professor(a)</option>
                                     <option value="Administrador">Administrador</option>
+                                    <option value="SuperAdministrador">SuperAdministrador</option>
                                     <option value="Núcleo Gestor">Núcleo Gestor</option>
                                     <option value="Coordenador(a)">Coordenador(a)</option>
+                                    <option value="Regente">Regente</option>
                                 </select>
                             </div>
+                            {editingUser.role === 'Regente' && (
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">Ambiente de Regência</label>
+                                    <select
+                                        value={editingUser.assigned_space_id || ''}
+                                        onChange={(e) => setEditingUser({ ...editingUser, assigned_space_id: e.target.value })}
+                                        className="w-full h-11 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary dark:text-white"
+                                    >
+                                        <option value="">Selecione um ambiente...</option>
+                                        {SPACES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                    </select>
+                                </div>
+                            )}
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 mb-1">Departamento</label>
                                 <select
@@ -470,7 +519,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 </div>
             )}
-        </div>
+        </div >
     );
 };
 
