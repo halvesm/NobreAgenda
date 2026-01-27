@@ -328,160 +328,195 @@ const BookingDetails: React.FC<Props> = ({ onBook }) => {
         </h2>
       </header>
 
-      <main className="flex-1">
-        <div className="px-4 py-3">
-          <div className="relative h-48 w-full rounded-xl overflow-hidden shadow-sm group">
-            <img src={space.image} alt={space.name} className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-            <div className="absolute top-3 right-3 bg-white/90 dark:bg-black/80 backdrop-blur-sm px-2.5 py-1 rounded-full flex items-center gap-1">
-              <span className="material-symbols-outlined text-sm text-primary">groups</span>
-              <span className="text-xs font-bold text-gray-800 dark:text-gray-200">Capacidade: {space.capacity}</span>
+      <main className="flex-1 max-w-7xl mx-auto w-full">
+        <div className="lg:grid lg:grid-cols-12 lg:gap-8 lg:p-6 items-start">
+
+          {/* Left Column: Image, Calendar, Lessons */}
+          <div className="lg:col-span-8 space-y-6">
+            <div className="px-4 py-3 lg:p-0">
+              <div className="relative h-48 lg:h-64 w-full rounded-xl overflow-hidden shadow-sm group">
+                <img src={space.image} alt={space.name} className="absolute inset-0 w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                <div className="absolute top-3 right-3 bg-white/90 dark:bg-black/80 backdrop-blur-sm px-2.5 py-1 rounded-full flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm text-primary">groups</span>
+                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200">Capacidade: {space.capacity}</span>
+                </div>
+                <div className="absolute bottom-4 left-4 text-white">
+                  <h3 className="text-2xl lg:text-3xl font-bold leading-tight">{space.name}</h3>
+                </div>
+              </div>
             </div>
-            <div className="absolute bottom-4 left-4 text-white">
-              <h3 className="text-2xl font-bold leading-tight">{space.name}</h3>
-              {/* Location removed as per request */}
+
+            <section className="px-4 lg:p-0">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-slate-900 dark:text-white text-base font-bold">Selecione a data</h2>
+                <button
+                  onClick={() => {
+                    const today = new Date();
+                    setCurrentDate(today);
+                    setSelectedDate(today);
+                  }}
+                  className="text-primary text-sm font-semibold flex items-center gap-1"
+                >
+                  Hoje <span className="material-symbols-outlined text-sm">calendar_today</span>
+                </button>
+              </div>
+              <div className="bg-white dark:bg-[#1a2634] p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
+                <div className="flex items-center justify-between mb-4">
+                  <button
+                    onClick={handlePrevMonth}
+                    className="size-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <span className="material-symbols-outlined text-sm">chevron_left</span>
+                  </button>
+                  <p className="text-slate-900 dark:text-white text-sm font-bold capitalize">{formattedMonthTitle}</p>
+                  <button
+                    onClick={handleNextMonth}
+                    className="size-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <span className="material-symbols-outlined text-sm">chevron_right</span>
+                  </button>
+                </div>
+                <div className="grid grid-cols-7 gap-1 text-center">
+                  {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(d => <span key={d} className="text-xs font-medium text-gray-400 py-2">{d}</span>)}
+                  {getDaysInMonth(currentDate).map((day, idx) => {
+                    if (!day) return <div key={`empty-${idx}`} />;
+
+                    const isSelectable = isDateSelectable(day);
+                    const isSelected = selectedDate?.toDateString() === day.toDateString();
+                    const dayLabel = day.getDate();
+
+                    return (
+                      <button
+                        key={day.toISOString()}
+                        disabled={!isSelectable}
+                        onClick={() => {
+                          setSelectedDate(day);
+                          setSelectedLessons([]); // Limpar seleção ao mudar dia
+                        }}
+                        className={`size-9 flex items-center justify-center rounded-full text-sm transition-all ${isSelected
+                          ? 'bg-primary text-white font-semibold shadow-md'
+                          : isSelectable
+                            ? 'text-slate-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-300 dark:text-gray-700 cursor-not-allowed'
+                          }`}
+                      >
+                        {dayLabel}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+
+            {selectedDate && (
+              <section className="px-4 lg:p-0">
+                <h2 className="text-slate-900 dark:text-white text-base font-bold mb-3">Selecione as aulas</h2>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                  {LESSONS.map((lesson, idx) => {
+                    const occupied = isLessonOccupied(idx);
+                    const isSelected = selectedLessons.includes(idx);
+                    return (
+                      <button
+                        key={idx}
+                        disabled={occupied}
+                        onClick={() => toggleLesson(idx)}
+                        className={`relative flex h-12 items-center justify-center rounded-lg border text-sm font-medium transition-all ${occupied ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed' :
+                          isSelected ? 'border-primary bg-primary/10 text-primary font-bold shadow-sm' :
+                            'bg-white dark:bg-[#1a2634] border-gray-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 hover:border-primary/50'
+                          }`}
+                      >
+                        {lesson}
+                        {isSelected && (
+                          <div className="absolute -top-1.5 -right-1.5 bg-primary text-white rounded-full p-0.5 shadow-sm">
+                            <span className="material-symbols-outlined text-[10px] block font-bold">check</span>
+                          </div>
+                        )}
+                        {occupied && (
+                          <span className="material-symbols-outlined absolute inset-0 flex items-center justify-center text-gray-300 opacity-50 text-xl">lock</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex gap-4 mt-3 px-1 text-[10px] text-gray-500">
+                  <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full border bg-white dark:bg-slate-800" /> Livre</div>
+                  <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-primary" /> Selecionado</div>
+                  <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-gray-200" /> Ocupado</div>
+                </div>
+              </section>
+            )}
+          </div>
+
+          {/* Right Column: Course, Year, Confirmation (Sticky on Desktop) */}
+          <div className="lg:col-span-4 mt-6 lg:mt-0 px-4 lg:px-0">
+            <div className="lg:sticky lg:top-24 space-y-6">
+
+              <div className="space-y-5 bg-white dark:bg-[#1a2634] lg:p-6 lg:rounded-2xl lg:shadow-sm lg:border lg:border-gray-100 lg:dark:border-gray-800">
+                <div>
+                  <label className="text-slate-900 dark:text-white text-base font-bold mb-2 block">Selecione o Curso</label>
+                  <div className="relative">
+                    <select
+                      value={selectedCourse}
+                      onChange={(e) => setSelectedCourse(e.target.value)}
+                      className="w-full h-12 pl-4 pr-10 rounded-xl bg-white dark:bg-[#1a2634] border border-gray-200 dark:border-gray-700 dark:text-white focus:ring-2 focus:ring-primary appearance-none bg-none outline-none shadow-sm text-sm font-medium cursor-pointer"
+                      style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none' }}
+                    >
+                      <option value="">Escolha o curso</option>
+                      {COURSES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                      <span className="material-symbols-outlined">expand_more</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-slate-900 dark:text-white text-base font-bold mb-3 block">Ano / Série</label>
+                  <div className="flex bg-gray-100 dark:bg-[#1a2634] p-1 rounded-xl">
+                    {['1', '2', '3'].map(year => (
+                      <button
+                        key={year}
+                        onClick={() => setSelectedYear(year)}
+                        className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${selectedYear === year ? 'bg-white dark:bg-gray-700 text-primary shadow-sm' : 'text-gray-500 dark:text-gray-400'
+                          }`}
+                      >
+                        {year}º Ano
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Desktop Confirmation Block */}
+                <div className="hidden lg:block pt-6 border-t border-gray-100 dark:border-gray-700 mt-6">
+                  <div className="flex items-center justify-between mb-4 text-sm">
+                    <span className="text-gray-500">Resumo:</span>
+                    <div className="text-right">
+                      <div className="font-bold text-slate-900 dark:text-white">
+                        {selectedDate ? selectedDate.toLocaleDateString('pt-BR') : '--/--/----'}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {selectedLessons.length > 0 ? `${selectedLessons.length} aula(s)` : 'Nenhuma aula'}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleConfirm}
+                    disabled={loading || !selectedDate || selectedLessons.length === 0 || !selectedCourse}
+                    className="w-full bg-primary hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold h-12 rounded-xl shadow-lg shadow-primary/25 active:scale-[0.98] flex items-center justify-center gap-2"
+                  >
+                    {loading ? 'Processando...' : (editId ? 'Atualizar' : 'Confirmar')} <span className="material-symbols-outlined text-lg">check_circle</span>
+                  </button>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
-
-        <section className="mt-4 px-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-slate-900 dark:text-white text-base font-bold">Selecione a data</h2>
-            <button
-              onClick={() => {
-                const today = new Date();
-                setCurrentDate(today);
-                setSelectedDate(today);
-              }}
-              className="text-primary text-sm font-semibold flex items-center gap-1"
-            >
-              Hoje <span className="material-symbols-outlined text-sm">calendar_today</span>
-            </button>
-          </div>
-          <div className="bg-white dark:bg-[#1a2634] p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
-            <div className="flex items-center justify-between mb-4">
-              <button
-                onClick={handlePrevMonth}
-                className="size-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                <span className="material-symbols-outlined text-sm">chevron_left</span>
-              </button>
-              <p className="text-slate-900 dark:text-white text-sm font-bold capitalize">{formattedMonthTitle}</p>
-              <button
-                onClick={handleNextMonth}
-                className="size-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                <span className="material-symbols-outlined text-sm">chevron_right</span>
-              </button>
-            </div>
-            <div className="grid grid-cols-7 gap-1 text-center">
-              {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(d => <span key={d} className="text-xs font-medium text-gray-400 py-2">{d}</span>)}
-              {getDaysInMonth(currentDate).map((day, idx) => {
-                if (!day) return <div key={`empty-${idx}`} />;
-
-                const isSelectable = isDateSelectable(day);
-                const isSelected = selectedDate?.toDateString() === day.toDateString();
-                const dayLabel = day.getDate();
-
-                return (
-                  <button
-                    key={day.toISOString()}
-                    disabled={!isSelectable}
-                    onClick={() => {
-                      setSelectedDate(day);
-                      setSelectedLessons([]); // Limpar seleção ao mudar dia
-                    }}
-                    className={`size-9 flex items-center justify-center rounded-full text-sm transition-all ${isSelected
-                      ? 'bg-primary text-white font-semibold shadow-md'
-                      : isSelectable
-                        ? 'text-slate-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                        : 'text-gray-300 dark:text-gray-700 cursor-not-allowed'
-                      }`}
-                  >
-                    {dayLabel}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {selectedDate && (
-          <section className="mt-6 px-4">
-            <h2 className="text-slate-900 dark:text-white text-base font-bold mb-3">Selecione as aulas</h2>
-            <div className="grid grid-cols-3 gap-3">
-              {LESSONS.map((lesson, idx) => {
-                const occupied = isLessonOccupied(idx);
-                const isSelected = selectedLessons.includes(idx);
-                return (
-                  <button
-                    key={idx}
-                    disabled={occupied}
-                    onClick={() => toggleLesson(idx)}
-                    className={`relative flex h-12 items-center justify-center rounded-lg border text-sm font-medium transition-all ${occupied ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed' :
-                      isSelected ? 'border-primary bg-primary/10 text-primary font-bold shadow-sm' :
-                        'bg-white dark:bg-[#1a2634] border-gray-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 hover:border-primary/50'
-                      }`}
-                  >
-                    {lesson}
-                    {isSelected && (
-                      <div className="absolute -top-1.5 -right-1.5 bg-primary text-white rounded-full p-0.5 shadow-sm">
-                        <span className="material-symbols-outlined text-[10px] block font-bold">check</span>
-                      </div>
-                    )}
-                    {occupied && (
-                      <span className="material-symbols-outlined absolute inset-0 flex items-center justify-center text-gray-300 opacity-50 text-xl">lock</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="flex gap-4 mt-3 px-1 text-[10px] text-gray-500">
-              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full border bg-white dark:bg-slate-800" /> Livre</div>
-              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-primary" /> Selecionado</div>
-              <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-gray-200" /> Ocupado</div>
-            </div>
-          </section>
-        )}
-
-        <section className="mt-6 px-4 space-y-5">
-          <div>
-            <label className="text-slate-900 dark:text-white text-base font-bold mb-2 block">Selecione o Curso</label>
-            <div className="relative">
-              <select
-                value={selectedCourse}
-                onChange={(e) => setSelectedCourse(e.target.value)}
-                className="w-full h-12 pl-4 pr-10 rounded-xl bg-white dark:bg-[#1a2634] border border-gray-200 dark:border-gray-700 dark:text-white focus:ring-2 focus:ring-primary appearance-none bg-none outline-none shadow-sm text-sm font-medium cursor-pointer"
-                style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none' }}
-              >
-                <option value="">Escolha o curso</option>
-                {COURSES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                <span className="material-symbols-outlined">expand_more</span>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-slate-900 dark:text-white text-base font-bold mb-3 block">Ano / Série</label>
-            <div className="flex bg-gray-100 dark:bg-[#1a2634] p-1 rounded-xl">
-              {['1', '2', '3'].map(year => (
-                <button
-                  key={year}
-                  onClick={() => setSelectedYear(year)}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${selectedYear === year ? 'bg-white dark:bg-gray-700 text-primary shadow-sm' : 'text-gray-500 dark:text-gray-400'
-                    }`}
-                >
-                  {year}º Ano
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
       </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50">
+      {/* Mobile Fixed Footer */}
+      <footer className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-[60]">
         <div className="flex items-center justify-between mb-3 text-sm">
           <span className="text-gray-500">Selecionado:</span>
           <span className="font-bold text-slate-900 dark:text-white">
