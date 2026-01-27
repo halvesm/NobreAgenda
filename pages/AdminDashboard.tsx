@@ -40,7 +40,7 @@ const AdminDashboard: React.FC = () => {
                     // Se for Regente, o padrão é 'bookings' e não pode ver 'users'
                     if (typedProfile.role === 'Regente') {
                         setActiveTab('bookings');
-                    } else if (profile.role !== 'Administrador' && profile.role !== 'SuperAdministrador') {
+                    } else if (profile.role !== 'Administrador' && profile.role !== 'SuperAdministrador' && profile.role !== 'Núcleo Gestor' && profile.role !== 'Coordenador(a)') {
                         setActiveTab('bookings');
                     }
                 }
@@ -235,7 +235,7 @@ const AdminDashboard: React.FC = () => {
             </header>
 
             <div className="flex p-4 gap-2">
-                {(currentUserRole === 'Administrador' || currentUserRole === 'SuperAdministrador') && (
+                {(currentUserRole === 'Administrador' || currentUserRole === 'SuperAdministrador' || currentUserRole === 'Núcleo Gestor' || currentUserRole === 'Coordenador(a)') && (
                     <>
                         <button
                             onClick={() => setActiveTab('users')}
@@ -245,7 +245,7 @@ const AdminDashboard: React.FC = () => {
                         </button>
                     </>
                 )}
-                {(currentUserRole === 'Administrador' || currentUserRole === 'SuperAdministrador' || currentUserRole === 'Regente') && (
+                {(currentUserRole === 'Administrador' || currentUserRole === 'SuperAdministrador' || currentUserRole === 'Regente' || currentUserRole === 'Núcleo Gestor' || currentUserRole === 'Coordenador(a)') && (
                     <button
                         onClick={() => setActiveTab('spaces')}
                         className={`flex-1 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'spaces' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-500'}`}
