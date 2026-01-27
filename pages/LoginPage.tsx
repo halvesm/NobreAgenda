@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User } from '../types';
 import { supabase } from '../lib/supabase';
@@ -21,6 +21,15 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [hasVisited, setHasVisited] = useState(true);
+
+  useEffect(() => {
+    const visited = localStorage.getItem('nobre_agenda_visited');
+    if (!visited) {
+      setHasVisited(false);
+      localStorage.setItem('nobre_agenda_visited', 'true');
+    }
+  }, []);
 
 
   const handleGoogleLogin = async () => {
@@ -105,10 +114,12 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
 
       <div className="text-center mb-6">
         <h1 className="text-[#0d141b] dark:text-white text-[28px] font-bold leading-tight">
-          {isRegistering ? 'Criar sua conta' : 'Bem-vindo de volta'}
+          {isRegistering ? 'Criar sua conta' : (hasVisited ? 'Bem-vindo de volta' : 'Bem-vindo')}
         </h1>
         <p className="text-[#4c739a] dark:text-gray-400 text-sm mt-1 px-6">
-          {isRegistering ? 'Preencha os dados abaixo para começar.' : 'Acesse seu painel de agendamentos.'}
+          {isRegistering 
+            ? 'Preencha os dados abaixo para começar.' 
+            : (hasVisited ? 'Acesse seu painel de agendamentos.' : 'Estamos felizes em ver você por aqui! Faça login para começar.')}
         </p>
       </div>
 
