@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User, SpaceCategory } from '../types';
 import { SPACES } from '../constants';
-import BottomNav from '../components/BottomNav';
 import { supabase } from '../lib/supabase';
 
 interface Props {
@@ -231,7 +230,7 @@ const HomePage: React.FC<Props> = ({ user }) => {
             <h4 className="text-slate-900 dark:text-white text-lg font-bold mb-4 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">science</span> Natureza
             </h4>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {natureSpaces.map(space => (
                 <div
                   key={space.id}
@@ -269,7 +268,7 @@ const HomePage: React.FC<Props> = ({ user }) => {
             <h4 className="text-slate-900 dark:text-white text-lg font-bold mb-4 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">devices</span> Laboratórios
             </h4>
-            <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {labSpaces.map(space => (
                 <div
                   key={space.id}
@@ -304,7 +303,7 @@ const HomePage: React.FC<Props> = ({ user }) => {
             <h4 className="text-slate-900 dark:text-white text-lg font-bold mb-4 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">meeting_room</span> Ambientes
             </h4>
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {ambientSpaces.map(space => (
                 <div
                   key={space.id}
@@ -338,8 +337,6 @@ const HomePage: React.FC<Props> = ({ user }) => {
           </section>
         )}
       </main>
-
-      <BottomNav />
     </div>
   );
 };

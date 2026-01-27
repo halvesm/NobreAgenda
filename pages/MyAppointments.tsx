@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Booking } from '../types';
 import { SPACES } from '../constants';
-import BottomNav from '../components/BottomNav';
+
 import { supabase } from '../lib/supabase';
 import { useModal } from '../context/ModalContext';
 import { translateError } from '../lib/i18n';
@@ -204,7 +204,7 @@ const MyAppointments: React.FC = () => {
         )}
       </main>
 
-      <BottomNav />
+
     </div>
   );
 };

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User } from '../types';
-import BottomNav from '../components/BottomNav';
+
 import { supabase } from '../lib/supabase';
 import { useModal } from '../context/ModalContext';
 import { translateError } from '../lib/i18n';
@@ -268,7 +268,7 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
         </div>
       </main>
 
-      <BottomNav />
+
     </div>
   );
 };

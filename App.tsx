@@ -11,6 +11,8 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import { User } from './types';
 import { supabase } from './lib/supabase';
 
+import Layout from './components/Layout';
+
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -129,19 +131,24 @@ const AppContent: React.FC = () => {
     );
   }
 
+  // Se não estiver logado, mostra rotas publicas sem Layout (ou com layout diferente se necessário)
+  // Mas para simplicidade, vamos envolver tudo no Layout e ele decide o que mostrar (Sidebar/Nav) ou escondê-los se for login
+  // Melhor: Layout só nas rotas autenticadas.
+
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-background-light dark:bg-background-dark shadow-2xl relative overflow-x-hidden">
-      <Routes>
-        <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage onLogin={() => { }} />} />
-        <Route path="/" element={!user ? <Navigate to="/login" /> : <HomePage user={user} />} />
-        <Route path="/admin" element={(user?.role === 'Administrador' || user?.role === 'Núcleo Gestor' || user?.role === 'Coordenador' || user?.role === 'Coordenador(a)' || user?.role === 'Regente') ? <AdminDashboard /> : <Navigate to="/" />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/booking/:id" element={!user ? <Navigate to="/login" /> : <BookingDetails />} />
-        <Route path="/my-appointments" element={!user ? <Navigate to="/login" /> : <MyAppointments />} />
-        <Route path="/profile" element={!user ? <Navigate to="/login" /> : <ProfilePage user={user} onLogout={handleLogout} onProfileUpdate={() => user && fetchProfile(user.id)} />} />
-      </Routes>
-    </div>
+    <Routes>
+      {/* Public Routes - No Layout needed usually, or minimal layout */}
+      <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage onLogin={() => { }} />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+
+      {/* Protected Routes - Wrapped in Layout for Sidebar/BottomNav */}
+      <Route path="/" element={!user ? <Navigate to="/login" /> : <Layout><HomePage user={user} /></Layout>} />
+      <Route path="/admin" element={(user?.role === 'Administrador' || user?.role === 'Núcleo Gestor' || user?.role === 'Coordenador' || user?.role === 'Coordenador(a)' || user?.role === 'Regente') ? <Layout><AdminDashboard /></Layout> : <Navigate to="/" />} />
+      <Route path="/booking/:id" element={!user ? <Navigate to="/login" /> : <Layout><BookingDetails /></Layout>} />
+      <Route path="/my-appointments" element={!user ? <Navigate to="/login" /> : <Layout><MyAppointments /></Layout>} />
+      <Route path="/profile" element={!user ? <Navigate to="/login" /> : <Layout><ProfilePage user={user} onLogout={handleLogout} onProfileUpdate={() => user && fetchProfile(user.id)} /></Layout>} />
+    </Routes>
   );
 };
 
