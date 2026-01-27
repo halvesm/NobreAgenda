@@ -25,8 +25,7 @@ const AdminDashboard: React.FC = () => {
                     const typedProfile = profile as User;
                     setCurrentUserRole(typedProfile.role);
 
-                    const isAuthorized = typedProfile.role === 'SuperAdministrador' ||
-                        typedProfile.role === 'Administrador' ||
+                    const isAuthorized = typedProfile.role === 'Administrador' ||
                         typedProfile.role === 'Núcleo Gestor' ||
                         typedProfile.role === 'Coordenador' ||
                         typedProfile.role === 'Coordenador(a)' ||
@@ -40,7 +39,7 @@ const AdminDashboard: React.FC = () => {
                     // Se for Regente, o padrão é 'bookings' e não pode ver 'users'
                     if (typedProfile.role === 'Regente') {
                         setActiveTab('bookings');
-                    } else if (profile.role !== 'Administrador' && profile.role !== 'SuperAdministrador' && profile.role !== 'Núcleo Gestor' && profile.role !== 'Coordenador(a)') {
+                    } else if (profile.role !== 'Administrador' && profile.role !== 'Núcleo Gestor' && profile.role !== 'Coordenador(a)') {
                         setActiveTab('bookings');
                     }
                 }
@@ -230,12 +229,12 @@ const AdminDashboard: React.FC = () => {
                     <span className="material-symbols-outlined">arrow_back</span>
                 </button>
                 <h2 className="text-slate-900 dark:text-white text-lg font-bold flex-1 text-center pr-10">
-                    {currentUserRole === 'SuperAdministrador' ? 'Super Admin' : (currentUserRole === 'Administrador' ? 'Painel Admin' : (currentUserRole === 'Regente' ? 'Painel Regente' : 'Núcleo Gestor'))}
+                    {currentUserRole === 'Administrador' ? 'Painel Admin' : (currentUserRole === 'Regente' ? 'Painel Regente' : 'Núcleo Gestor')}
                 </h2>
             </header>
 
             <div className="flex p-4 gap-2">
-                {(currentUserRole === 'Administrador' || currentUserRole === 'SuperAdministrador' || currentUserRole === 'Núcleo Gestor' || currentUserRole === 'Coordenador(a)') && (
+                {(currentUserRole === 'Administrador' || currentUserRole === 'Núcleo Gestor' || currentUserRole === 'Coordenador(a)') && (
                     <>
                         <button
                             onClick={() => setActiveTab('users')}
@@ -245,7 +244,7 @@ const AdminDashboard: React.FC = () => {
                         </button>
                     </>
                 )}
-                {(currentUserRole === 'Administrador' || currentUserRole === 'SuperAdministrador' || currentUserRole === 'Regente' || currentUserRole === 'Núcleo Gestor' || currentUserRole === 'Coordenador(a)') && (
+                {(currentUserRole === 'Administrador' || currentUserRole === 'Regente' || currentUserRole === 'Núcleo Gestor' || currentUserRole === 'Coordenador(a)') && (
                     <button
                         onClick={() => setActiveTab('spaces')}
                         className={`flex-1 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'spaces' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-500'}`}
@@ -471,7 +470,6 @@ const AdminDashboard: React.FC = () => {
                                 >
                                     <option value="Professor(a)">Professor(a)</option>
                                     <option value="Administrador">Administrador</option>
-                                    <option value="SuperAdministrador">SuperAdministrador</option>
                                     <option value="Núcleo Gestor">Núcleo Gestor</option>
                                     <option value="Coordenador(a)">Coordenador(a)</option>
                                     <option value="Regente">Regente</option>
