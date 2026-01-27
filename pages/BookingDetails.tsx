@@ -451,7 +451,7 @@ const BookingDetails: React.FC<Props> = ({ onBook }) => {
               <select
                 value={selectedCourse}
                 onChange={(e) => setSelectedCourse(e.target.value)}
-                className="w-full h-12 pl-4 pr-10 rounded-xl bg-white dark:bg-[#1a2634] border border-gray-200 dark:border-gray-700 dark:text-white focus:ring-2 focus:ring-primary appearance-none outline-none shadow-sm text-sm font-medium cursor-pointer"
+                className="w-full h-12 pl-4 pr-10 rounded-xl bg-white dark:bg-[#1a2634] border border-gray-200 dark:border-gray-700 dark:text-white focus:ring-2 focus:ring-primary appearance-none bg-none outline-none shadow-sm text-sm font-medium cursor-pointer"
                 style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none' }}
               >
                 <option value="">Escolha o curso</option>
