@@ -234,7 +234,7 @@ const AdminDashboard: React.FC = () => {
             </header>
 
             <div className="flex p-4 gap-2">
-                {(currentUserRole === 'Administrador' || currentUserRole === 'Núcleo Gestor' || currentUserRole === 'Coordenador(a)') && (
+                {(currentUserRole === 'Administrador' || currentUserRole === 'Núcleo Gestor') && (
                     <>
                         <button
                             onClick={() => setActiveTab('users')}
