@@ -134,7 +134,7 @@ const HomePage: React.FC<Props> = ({ user }) => {
           <h2 className="text-slate-900 dark:text-white text-lg font-bold leading-tight">Seleção de Espaço</h2>
         </div>
         <div className="flex gap-2">
-          {(user.role === 'Administrador' || user.role === 'Núcleo Gestor' || user.role === 'Coordenador' || user.role === 'Coordenador(a)' || user.role === 'Regente') && (
+          {(user.role === 'Administrador' || user.role === 'Núcleo Gestor' || user.role === 'Coordenador' || user.role === 'Coordenador(a)' || user.role === 'Regente' || user.role === 'PCA') && (
             <button
               onClick={() => navigate('/admin')}
               className="flex size-10 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800 hover:opacity-80 transition-opacity"

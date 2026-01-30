@@ -10,6 +10,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import { User } from './types';
 import { supabase } from './lib/supabase';
+import { AreaSelectionModal } from './components/AreaSelectionModal';
 
 import Layout from './components/Layout';
 
@@ -93,9 +94,10 @@ const AppContent: React.FC = () => {
             email: authUser.email,
             name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || 'Usuário',
             role: 'Professor(a)', // Role padrão
-            department: authUser.user_metadata?.department || 'Linguagens', // Departamento padrão ou do meta
+            department: authUser.user_metadata?.department || 'PENDING_SELECTION', // Marcar para seleção
             avatar: authUser.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${authUser.user_metadata?.full_name || 'U'}`,
-            theme: 'light'
+            theme: 'light',
+            assigned_space_ids: []
           };
 
           const { data: createdData, error: insertError } = await supabase
@@ -136,19 +138,27 @@ const AppContent: React.FC = () => {
   // Melhor: Layout só nas rotas autenticadas.
 
   return (
-    <Routes>
-      {/* Public Routes - No Layout needed usually, or minimal layout */}
-      <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage onLogin={() => { }} />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+    <>
+      {user && (
+        <AreaSelectionModal
+          user={user}
+          onUpdate={(updatedUser) => setUser(updatedUser)}
+        />
+      )}
+      <Routes>
+        {/* Public Routes - No Layout needed usually, or minimal layout */}
+        <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage onLogin={() => { }} />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
-      {/* Protected Routes - Wrapped in Layout for Sidebar/BottomNav */}
-      <Route path="/" element={!user ? <Navigate to="/login" /> : <Layout><HomePage user={user} /></Layout>} />
-      <Route path="/admin" element={(user?.role === 'Administrador' || user?.role === 'Núcleo Gestor' || user?.role === 'Coordenador' || user?.role === 'Coordenador(a)' || user?.role === 'Regente') ? <Layout><AdminDashboard /></Layout> : <Navigate to="/" />} />
-      <Route path="/booking/:id" element={!user ? <Navigate to="/login" /> : <Layout><BookingDetails /></Layout>} />
-      <Route path="/my-appointments" element={!user ? <Navigate to="/login" /> : <Layout><MyAppointments /></Layout>} />
-      <Route path="/profile" element={!user ? <Navigate to="/login" /> : <Layout><ProfilePage user={user} onLogout={handleLogout} onProfileUpdate={() => user && fetchProfile(user.id)} /></Layout>} />
-    </Routes>
+        {/* Protected Routes - Wrapped in Layout for Sidebar/BottomNav */}
+        <Route path="/" element={!user ? <Navigate to="/login" /> : <Layout><HomePage user={user} /></Layout>} />
+        <Route path="/admin" element={(user?.role === 'Administrador' || user?.role === 'Núcleo Gestor' || user?.role === 'Coordenador' || user?.role === 'Coordenador(a)' || user?.role === 'Regente') ? <Layout><AdminDashboard /></Layout> : <Navigate to="/" />} />
+        <Route path="/booking/:id" element={!user ? <Navigate to="/login" /> : <Layout><BookingDetails /></Layout>} />
+        <Route path="/my-appointments" element={!user ? <Navigate to="/login" /> : <Layout><MyAppointments /></Layout>} />
+        <Route path="/profile" element={!user ? <Navigate to="/login" /> : <Layout><ProfilePage user={user} onLogout={handleLogout} onProfileUpdate={() => user && fetchProfile(user.id)} /></Layout>} />
+      </Routes>
+    </>
   );
 };
 

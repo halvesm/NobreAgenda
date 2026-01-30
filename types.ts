@@ -37,4 +37,5 @@ export interface User {
   avatar: string;
   theme?: 'light' | 'dark';
   assigned_space_id?: string;
+  assigned_space_ids?: string[];
 }

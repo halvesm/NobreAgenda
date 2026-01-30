@@ -17,7 +17,7 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [department, setDepartment] = useState('Linguagens');
+  const [department, setDepartment] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -173,8 +173,10 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
                   <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Área</label>
                   <select
                     value={department} onChange={(e) => setDepartment(e.target.value)}
+                    required
                     className="w-full h-12 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:text-white shadow-sm appearance-none"
                   >
+                    <option value="" disabled>Selecione sua área...</option>
                     {DEPARTMENTS.map(dept => <option key={dept} value={dept}>{dept}</option>)}
                   </select>
                 </div>

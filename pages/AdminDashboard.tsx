@@ -37,7 +37,7 @@ const AdminDashboard: React.FC = () => {
 
                     // Se for Administrador (legacy) ou SuperAdministrador, mantém 'bookings' ou 'users'
                     // Se for Regente, o padrão é 'bookings' e não pode ver 'users'
-                    if (typedProfile.role === 'Regente') {
+                    if (typedProfile.role === 'Regente' || typedProfile.role === 'PCA') {
                         setActiveTab('bookings');
                     } else if (profile.role !== 'Administrador' && profile.role !== 'Núcleo Gestor' && profile.role !== 'Coordenador(a)') {
                         setActiveTab('bookings');
@@ -77,9 +77,12 @@ const AdminDashboard: React.FC = () => {
             .select('*, profiles(name)')
             .order('date', { ascending: false });
 
-        // Se for Regente, filtra apenas os agendamentos do seu espaço
-        if (profile.role === 'Regente' && profile.assigned_space_id) {
-            query = query.eq('space_id', profile.assigned_space_id);
+        // Se for Regente ou PCA, filtra apenas os agendamentos dos seus espaços
+        if ((profile.role === 'Regente' || profile.role === 'PCA')) {
+            const assignedIds = profile.assigned_space_ids || (profile.assigned_space_id ? [profile.assigned_space_id] : []);
+            if (assignedIds.length > 0) {
+                query = query.in('space_id', assignedIds);
+            }
         }
 
         const { data, error } = await query.limit(50);
@@ -117,8 +120,11 @@ const AdminDashboard: React.FC = () => {
 
         let query = supabase.from('space_maintenance').select('*');
 
-        if (profile.role === 'Regente' && profile.assigned_space_id) {
-            query = query.eq('space_id', profile.assigned_space_id);
+        if ((profile.role === 'Regente' || profile.role === 'PCA')) {
+            const assignedIds = profile.assigned_space_ids || (profile.assigned_space_id ? [profile.assigned_space_id] : []);
+            if (assignedIds.length > 0) {
+                query = query.in('space_id', assignedIds);
+            }
         }
 
         const { data } = await query;
@@ -141,7 +147,8 @@ const AdminDashboard: React.FC = () => {
                     name: editingUser.name,
                     role: editingUser.role,
                     department: editingUser.department,
-                    assigned_space_id: editingUser.assigned_space_id
+                    assigned_space_id: editingUser.assigned_space_id,
+                    assigned_space_ids: editingUser.assigned_space_ids || []
                 })
                 .eq('id', editingUser.id);
 
@@ -473,6 +480,7 @@ const AdminDashboard: React.FC = () => {
                                     <option value="Núcleo Gestor">Núcleo Gestor</option>
                                     <option value="Coordenador(a)">Coordenador(a)</option>
                                     <option value="Regente">Regente</option>
+                                    <option value="PCA">PCA</option>
                                 </select>
                             </div>
                             {editingUser.role === 'Regente' && (
@@ -486,6 +494,30 @@ const AdminDashboard: React.FC = () => {
                                         <option value="">Selecione um ambiente...</option>
                                         {SPACES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                     </select>
+                                </div>
+                            )}
+                            {editingUser.role === 'PCA' && (
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">Ambientes de Responsabilidade (PCA)</label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-slate-800">
+                                        {SPACES.map(s => (
+                                            <label key={s.id} className="flex items-center gap-2 p-2 hover:bg-white dark:hover:bg-slate-700 rounded transition-colors cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={(editingUser.assigned_space_ids || []).includes(s.id)}
+                                                    onChange={(e) => {
+                                                        const currentIds = editingUser.assigned_space_ids || [];
+                                                        const newIds = e.target.checked
+                                                            ? [...currentIds, s.id]
+                                                            : currentIds.filter(id => id !== s.id);
+                                                        setEditingUser({ ...editingUser, assigned_space_ids: newIds });
+                                                    }}
+                                                    className="rounded border-gray-300 text-primary focus:ring-primary"
+                                                />
+                                                <span className="text-sm text-gray-700 dark:text-gray-200 truncate">{s.name}</span>
+                                            </label>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                             <div>
