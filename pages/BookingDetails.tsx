@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { SPACES, COURSES, LESSONS } from '../constants';
-import { Booking } from '../types';
+import { User, Booking } from '../types';
 import { supabase } from '../lib/supabase';
 import { useModal } from '../context/ModalContext';
 import { translateError } from '../lib/i18n';
 
 interface Props {
+  user: User;
   onBook?: (booking: Booking) => void;
 }
 
@@ -14,13 +15,15 @@ const useQuery = () => {
   return new URLSearchParams(useLocation().search);
 };
 
-const BookingDetails: React.FC<Props> = ({ onBook }) => {
+const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
   const { showModal } = useModal();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const query = useQuery();
   const editId = query.get('editId');
   const space = SPACES.find(s => s.id === id);
+  const isAuditorum = space?.id === '8';
+  const allLessons = isAuditorum ? [...LESSONS, 'Almoço'] : LESSONS;
 
   // Estados do Calendário
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -134,6 +137,24 @@ const BookingDetails: React.FC<Props> = ({ onBook }) => {
 
     if (isOccupied) return;
 
+    if (isAuditorum && index === LESSONS.length) {
+      const canBookLunch = user.role === 'Administrador' ||
+        user.role === 'Núcleo Gestor' ||
+        user.role === 'Coordenador(a)' ||
+        user.role === 'Coordenador' ||
+        user.role === 'PCA' ||
+        (user.role === 'Regente' && (user.assigned_space_ids?.includes('8') || user.assigned_space_id === '8'));
+
+      if (!canBookLunch) {
+        showModal({
+          title: 'Acesso Negado',
+          message: 'Apenas Regentes do ambiente, Coordenadores ou PCAs podem agendar o horário de almoço no Auditório.',
+          type: 'error'
+        });
+        return;
+      }
+    }
+
     setSelectedLessons(prev =>
       prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]
     );
@@ -190,7 +211,7 @@ const BookingDetails: React.FC<Props> = ({ onBook }) => {
           const conflicts = selectedLessons.filter(lesson => occupiedLessons.includes(lesson));
 
           if (conflicts.length > 0) {
-            const conflictNames = conflicts.map(index => LESSONS[index]).join(', ');
+            const conflictNames = conflicts.map(index => allLessons[index]).join(', ');
             showModal({
               title: '❌ Conflito de agendamento',
               message: `Uma ou mais aulas já foram agendadas para este dia:\n${conflictNames}\n\nPor favor, escolha outros horários.`,
@@ -413,7 +434,7 @@ const BookingDetails: React.FC<Props> = ({ onBook }) => {
               <section className="px-4 lg:p-0">
                 <h2 className="text-slate-900 dark:text-white text-base font-bold mb-3">Selecione as aulas</h2>
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                  {LESSONS.map((lesson, idx) => {
+                  {allLessons.map((lesson, idx) => {
                     const occupied = isLessonOccupied(idx);
                     const isSelected = selectedLessons.includes(idx);
                     return (

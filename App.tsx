@@ -154,7 +154,7 @@ const AppContent: React.FC = () => {
         {/* Protected Routes - Wrapped in Layout for Sidebar/BottomNav */}
         <Route path="/" element={!user ? <Navigate to="/login" /> : <Layout><HomePage user={user} /></Layout>} />
         <Route path="/admin" element={(user?.role === 'Administrador' || user?.role === 'Núcleo Gestor' || user?.role === 'Coordenador' || user?.role === 'Coordenador(a)' || user?.role === 'Regente') ? <Layout><AdminDashboard /></Layout> : <Navigate to="/" />} />
-        <Route path="/booking/:id" element={!user ? <Navigate to="/login" /> : <Layout><BookingDetails /></Layout>} />
+        <Route path="/booking/:id" element={!user ? <Navigate to="/login" /> : <Layout><BookingDetails user={user} /></Layout>} />
         <Route path="/my-appointments" element={!user ? <Navigate to="/login" /> : <Layout><MyAppointments /></Layout>} />
         <Route path="/profile" element={!user ? <Navigate to="/login" /> : <Layout><ProfilePage user={user} onLogout={handleLogout} onProfileUpdate={() => user && fetchProfile(user.id)} /></Layout>} />
       </Routes>
