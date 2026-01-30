@@ -483,22 +483,11 @@ const AdminDashboard: React.FC = () => {
                                     <option value="PCA">PCA</option>
                                 </select>
                             </div>
-                            {editingUser.role === 'Regente' && (
+                            {(editingUser.role === 'Regente' || editingUser.role === 'PCA') && (
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-1">Ambiente de Regência</label>
-                                    <select
-                                        value={editingUser.assigned_space_id || ''}
-                                        onChange={(e) => setEditingUser({ ...editingUser, assigned_space_id: e.target.value })}
-                                        className="w-full h-11 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-primary dark:text-white"
-                                    >
-                                        <option value="">Selecione um ambiente...</option>
-                                        {SPACES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                    </select>
-                                </div>
-                            )}
-                            {editingUser.role === 'PCA' && (
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-1">Ambientes de Responsabilidade (PCA)</label>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">
+                                        {editingUser.role === 'Regente' ? 'Ambientes de Regência' : 'Ambientes de Responsabilidade (PCA)'}
+                                    </label>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-slate-800">
                                         {SPACES.map(s => (
                                             <label key={s.id} className="flex items-center gap-2 p-2 hover:bg-white dark:hover:bg-slate-700 rounded transition-colors cursor-pointer">
