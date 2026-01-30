@@ -9,6 +9,7 @@ import { SPACES, DEPARTMENTS } from '../constants';
 const AdminDashboard: React.FC = () => {
     const { showModal } = useModal();
     const navigate = useNavigate();
+    const [currentUserProfile, setCurrentUserProfile] = useState<User | null>(null);
     const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
     useEffect(() => {
@@ -17,19 +18,21 @@ const AdminDashboard: React.FC = () => {
             if (user) {
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('role')
+                    .select('*')
                     .eq('id', user.id)
                     .single();
 
                 if (profile) {
                     const typedProfile = profile as User;
+                    setCurrentUserProfile(typedProfile);
                     setCurrentUserRole(typedProfile.role);
 
                     const isAuthorized = typedProfile.role === 'Administrador' ||
                         typedProfile.role === 'Núcleo Gestor' ||
                         typedProfile.role === 'Coordenador' ||
                         typedProfile.role === 'Coordenador(a)' ||
-                        typedProfile.role === 'Regente';
+                        typedProfile.role === 'Regente' ||
+                        typedProfile.role === 'PCA';
 
                     if (!isAuthorized) {
                         navigate('/');
@@ -316,8 +319,10 @@ const AdminDashboard: React.FC = () => {
                 ) : activeTab === 'spaces' ? (
                     <div className="space-y-4 pb-10">
                         {SPACES.filter(space => {
-                            if (currentUserRole === 'Regente') {
-                                return spacesStatus[space.id] !== undefined;
+                            if (currentUserRole === 'Regente' || currentUserRole === 'PCA') {
+                                if (!currentUserProfile) return false;
+                                const assignedIds = currentUserProfile.assigned_space_ids || (currentUserProfile.assigned_space_id ? [currentUserProfile.assigned_space_id] : []);
+                                return assignedIds.includes(space.id);
                             }
                             return true;
                         }).map(space => {
