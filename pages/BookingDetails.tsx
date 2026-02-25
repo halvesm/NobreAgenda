@@ -81,12 +81,29 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
       .single();
 
     if (data && data.is_unavailable) {
-      showModal({
-        title: 'Ambiente Indisponível',
-        message: `Este ambiente está indisponível.\nMotivo: ${data.reason || 'Manutenção'}`,
-        type: 'error'
-      });
-      navigate('/');
+      // Check period-based unavailability
+      const today = new Date().toISOString().split('T')[0];
+      const unavailableFrom: string | null = data.unavailable_from || null;
+      const unavailableTo: string | null = data.unavailable_to || null;
+
+      let isCurrentlyUnavailable = false;
+      if (!unavailableFrom && !unavailableTo) {
+        // No period set → indefinite
+        isCurrentlyUnavailable = true;
+      } else {
+        const afterStart = !unavailableFrom || today >= unavailableFrom;
+        const beforeEnd = !unavailableTo || today <= unavailableTo;
+        isCurrentlyUnavailable = afterStart && beforeEnd;
+      }
+
+      if (isCurrentlyUnavailable) {
+        showModal({
+          title: 'Ambiente Indisponível',
+          message: `Este ambiente está indisponível.\nMotivo: ${data.reason || 'Manutenção'}`,
+          type: 'error'
+        });
+        navigate('/');
+      }
     }
   };
 

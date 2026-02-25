@@ -16,7 +16,7 @@ const HomePage: React.FC<Props> = ({ user }) => {
   const [activeCategory, setActiveCategory] = useState<string>('Todos');
   const [favorites, setFavorites] = useState<string[]>([]);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const [spacesStatus, setSpacesStatus] = useState<Record<string, { is_unavailable: boolean; reason: string }>>({});
+  const [spacesStatus, setSpacesStatus] = useState<Record<string, { is_unavailable: boolean; reason: string; unavailable_from?: string | null; unavailable_to?: string | null }>>({});
 
   useEffect(() => {
     fetchFavorites();
@@ -49,11 +49,26 @@ const HomePage: React.FC<Props> = ({ user }) => {
       const map: any = {};
       data.forEach((item: any) => {
         if (item.is_unavailable) {
-          map[item.space_id] = { is_unavailable: item.is_unavailable, reason: item.reason };
+          map[item.space_id] = {
+            is_unavailable: item.is_unavailable,
+            reason: item.reason,
+            unavailable_from: item.unavailable_from || null,
+            unavailable_to: item.unavailable_to || null,
+          };
         }
       });
       setSpacesStatus(map);
     }
+  };
+
+  const isCurrentlyUnavailable = (status: { is_unavailable: boolean; unavailable_from?: string | null; unavailable_to?: string | null } | undefined): boolean => {
+    if (!status || !status.is_unavailable) return false;
+    const today = new Date().toISOString().split('T')[0];
+    // No dates set → indefinite unavailability
+    if (!status.unavailable_from && !status.unavailable_to) return true;
+    const afterStart = !status.unavailable_from || today >= status.unavailable_from;
+    const beforeEnd = !status.unavailable_to || today <= status.unavailable_to;
+    return afterStart && beforeEnd;
   };
 
   const toggleFavorite = async (spaceId: string, e: React.MouseEvent) => {
@@ -110,12 +125,17 @@ const HomePage: React.FC<Props> = ({ user }) => {
 
   const renderMaintenanceOverlay = (spaceId: string) => {
     const status = spacesStatus[spaceId];
-    if (status && status.is_unavailable) {
+    if (status && isCurrentlyUnavailable(status)) {
+      const formatDate = (d: string | null | undefined) => d
+        ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+        : null;
+      const endLabel = status.unavailable_to ? `Até ${formatDate(status.unavailable_to)}` : null;
       return (
         <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 z-20 flex flex-col items-center justify-center p-4 text-center backdrop-blur-sm cursor-not-allowed">
           <span className="material-symbols-outlined text-4xl text-red-500 mb-2">block</span>
           <p className="text-red-600 dark:text-red-400 font-bold text-sm">Indisponível</p>
           <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">{status.reason}</p>
+          {endLabel && <p className="text-gray-400 dark:text-gray-500 text-[10px] mt-0.5">{endLabel}</p>}
         </div>
       );
     }
@@ -123,7 +143,7 @@ const HomePage: React.FC<Props> = ({ user }) => {
   };
 
   const handleSpaceClick = (spaceId: string) => {
-    if (spacesStatus[spaceId]?.is_unavailable) return;
+    if (isCurrentlyUnavailable(spacesStatus[spaceId])) return;
     navigate(`/booking/${spaceId}`);
   };
 
@@ -235,7 +255,7 @@ const HomePage: React.FC<Props> = ({ user }) => {
                 <div
                   key={space.id}
                   onClick={() => handleSpaceClick(space.id)}
-                  className={`bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700 transition-all relative ${spacesStatus[space.id]?.is_unavailable ? 'opacity-80' : 'hover:shadow-md active:scale-[0.98] cursor-pointer'}`}
+                  className={`bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700 transition-all relative ${isCurrentlyUnavailable(spacesStatus[space.id]) ? 'opacity-80' : 'hover:shadow-md active:scale-[0.98] cursor-pointer'}`}
                 >
                   {renderMaintenanceOverlay(space.id)}
 
@@ -252,9 +272,9 @@ const HomePage: React.FC<Props> = ({ user }) => {
                       </span>
                     </div>
                     <p className="text-slate-500 dark:text-slate-400 text-[10px] mt-1">Capacidade: {space.capacity}</p>
-                    <div className={`mt-3 text-[10px] font-bold flex items-center gap-1 ${spacesStatus[space.id]?.is_unavailable ? 'text-gray-400' : 'text-primary'}`}>
-                      {spacesStatus[space.id]?.is_unavailable ? 'Indisponível' : 'Reservar'}
-                      {!spacesStatus[space.id]?.is_unavailable && <span className="material-symbols-outlined text-[12px]">arrow_forward</span>}
+                    <div className={`mt-3 text-[10px] font-bold flex items-center gap-1 ${isCurrentlyUnavailable(spacesStatus[space.id]) ? 'text-gray-400' : 'text-primary'}`}>
+                      {isCurrentlyUnavailable(spacesStatus[space.id]) ? 'Indisponível' : 'Reservar'}
+                      {!isCurrentlyUnavailable(spacesStatus[space.id]) && <span className="material-symbols-outlined text-[12px]">arrow_forward</span>}
                     </div>
                   </div>
                 </div>
@@ -273,7 +293,7 @@ const HomePage: React.FC<Props> = ({ user }) => {
                 <div
                   key={space.id}
                   onClick={() => handleSpaceClick(space.id)}
-                  className={`flex items-center bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm transition-colors relative group overflow-hidden ${spacesStatus[space.id]?.is_unavailable ? 'opacity-80' : 'active:bg-slate-50 cursor-pointer'}`}
+                  className={`flex items-center bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm transition-colors relative group overflow-hidden ${isCurrentlyUnavailable(spacesStatus[space.id]) ? 'opacity-80' : 'active:bg-slate-50 cursor-pointer'}`}
                 >
                   {renderMaintenanceOverlay(space.id)}
 
@@ -287,10 +307,10 @@ const HomePage: React.FC<Props> = ({ user }) => {
                     </p>
                   </div>
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                    <div onClick={e => e.stopPropagation()} className={`opacity-0 group-hover:opacity-100 transition-opacity ${spacesStatus[space.id]?.is_unavailable ? 'hidden' : ''}`}>
+                    <div onClick={e => e.stopPropagation()} className={`opacity-0 group-hover:opacity-100 transition-opacity ${isCurrentlyUnavailable(spacesStatus[space.id]) ? 'hidden' : ''}`}>
                       {renderFavoriteButton(space.id, false)}
                     </div>
-                    {!spacesStatus[space.id]?.is_unavailable && <span className="material-symbols-outlined text-slate-400">chevron_right</span>}
+                    {!isCurrentlyUnavailable(spacesStatus[space.id]) && <span className="material-symbols-outlined text-slate-400">chevron_right</span>}
                   </div>
                 </div>
               ))}
@@ -308,14 +328,14 @@ const HomePage: React.FC<Props> = ({ user }) => {
                 <div
                   key={space.id}
                   onClick={() => handleSpaceClick(space.id)}
-                  className={`relative h-32 rounded-xl overflow-hidden shadow-sm group ${spacesStatus[space.id]?.is_unavailable ? 'cursor-not-allowed opacity-90' : 'cursor-pointer'}`}
+                  className={`relative h-32 rounded-xl overflow-hidden shadow-sm group ${isCurrentlyUnavailable(spacesStatus[space.id]) ? 'cursor-not-allowed opacity-90' : 'cursor-pointer'}`}
                 >
-                  <div className={`absolute inset-0 bg-black/30 transition-colors z-10 ${!spacesStatus[space.id]?.is_unavailable && 'group-hover:bg-black/40'}`} />
+                  <div className={`absolute inset-0 bg-black/30 transition-colors z-10 ${!isCurrentlyUnavailable(spacesStatus[space.id]) && 'group-hover:bg-black/40'}`} />
                   <img src={space.image} alt={space.name} className="absolute inset-0 w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-15" />
 
                   {renderMaintenanceOverlay(space.id)}
-                  {(!spacesStatus[space.id]?.is_unavailable) && renderFavoriteButton(space.id)}
+                  {(!isCurrentlyUnavailable(spacesStatus[space.id])) && renderFavoriteButton(space.id)}
 
                   <div className="absolute bottom-0 left-0 p-4 z-20 w-full flex justify-between items-end">
                     <div>
@@ -325,7 +345,7 @@ const HomePage: React.FC<Props> = ({ user }) => {
                         {space.capacity} Lugares
                       </p>
                     </div>
-                    {!spacesStatus[space.id]?.is_unavailable && (
+                    {!isCurrentlyUnavailable(spacesStatus[space.id]) && (
                       <span className="bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-bold border border-white/30">
                         Reservar
                       </span>

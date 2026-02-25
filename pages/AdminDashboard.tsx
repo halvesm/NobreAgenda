@@ -55,7 +55,11 @@ const AdminDashboard: React.FC = () => {
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<'users' | 'spaces' | 'bookings'>('bookings');
-    const [spacesStatus, setSpacesStatus] = useState<Record<string, { is_unavailable: boolean; reason: string }>>({});
+    const [spacesStatus, setSpacesStatus] = useState<Record<string, { is_unavailable: boolean; reason: string; unavailable_from?: string | null; unavailable_to?: string | null }>>({});
+    const [editingSpaceId, setEditingSpaceId] = useState<string | null>(null);
+    const [editingReason, setEditingReason] = useState('');
+    const [editingFrom, setEditingFrom] = useState('');
+    const [editingTo, setEditingTo] = useState('');
     const [allBookings, setAllBookings] = useState<any[]>([]);
 
     useEffect(() => {
@@ -134,7 +138,12 @@ const AdminDashboard: React.FC = () => {
         if (data) {
             const map: any = {};
             data.forEach((item: any) => {
-                map[item.space_id] = { is_unavailable: item.is_unavailable, reason: item.reason };
+                map[item.space_id] = {
+                    is_unavailable: item.is_unavailable,
+                    reason: item.reason,
+                    unavailable_from: item.unavailable_from || null,
+                    unavailable_to: item.unavailable_to || null,
+                };
             });
             setSpacesStatus(map);
         }
@@ -173,39 +182,35 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
-    const toggleSpaceStatus = async (spaceId: string, currentStatus: boolean, currentReason: string) => {
-        try {
-            let newStatus = !currentStatus;
-            let newReason = currentReason;
-
-            if (newStatus) {
-                showModal({
-                    title: 'Motivo da Indisponibilidade',
-                    message: 'Qual o motivo da indisponibilidade? (Ex: Limpeza, Manutenção)',
-                    type: 'prompt',
-                    defaultValue: 'Manutenção',
-                    placeholder: 'Descreva o motivo...',
-                    onConfirm: async (reason) => {
-                        if (reason) {
-                            await saveSpaceStatus(spaceId, newStatus, reason);
-                        }
-                    }
-                });
-                return;
-            } else {
-                newReason = '';
-                await saveSpaceStatus(spaceId, newStatus, newReason);
-            }
-        } catch (error: any) {
-            showModal({
-                title: 'Erro',
-                message: translateError(error.message),
-                type: 'error'
-            });
-        }
+    const openUnavailableForm = (spaceId: string, status: { is_unavailable: boolean; reason: string; unavailable_from?: string | null; unavailable_to?: string | null }) => {
+        setEditingSpaceId(spaceId);
+        setEditingReason(status.reason || '');
+        setEditingFrom(status.unavailable_from || '');
+        setEditingTo(status.unavailable_to || '');
     };
 
-    const saveSpaceStatus = async (spaceId: string, isUnavailable: boolean, reason: string) => {
+    const cancelUnavailableForm = () => {
+        setEditingSpaceId(null);
+        setEditingReason('');
+        setEditingFrom('');
+        setEditingTo('');
+    };
+
+    const handleDisableSpace = async (spaceId: string) => {
+        await saveSpaceStatus(spaceId, false, '', null, null);
+    };
+
+    const handleSaveUnavailable = async () => {
+        if (!editingSpaceId) return;
+        if (!editingReason.trim()) {
+            showModal({ title: 'Atenção', message: 'Por favor, informe o motivo da indisponibilidade.', type: 'info' });
+            return;
+        }
+        await saveSpaceStatus(editingSpaceId, true, editingReason.trim(), editingFrom || null, editingTo || null);
+        cancelUnavailableForm();
+    };
+
+    const saveSpaceStatus = async (spaceId: string, isUnavailable: boolean, reason: string, unavailableFrom: string | null, unavailableTo: string | null) => {
         try {
             const { error } = await supabase
                 .from('space_maintenance')
@@ -213,6 +218,8 @@ const AdminDashboard: React.FC = () => {
                     space_id: spaceId,
                     is_unavailable: isUnavailable,
                     reason: reason,
+                    unavailable_from: unavailableFrom,
+                    unavailable_to: unavailableTo,
                     updated_at: new Date()
                 }, { onConflict: 'space_id' });
 
@@ -327,38 +334,138 @@ const AdminDashboard: React.FC = () => {
                             return true;
                         }).map(space => {
                             const status = spacesStatus[space.id] || { is_unavailable: false, reason: '' };
+                            const today = new Date().toISOString().split('T')[0];
+                            const isWithinPeriod = status.is_unavailable && (
+                                (!status.unavailable_from && !status.unavailable_to) ||
+                                ((!status.unavailable_from || today >= status.unavailable_from) &&
+                                    (!status.unavailable_to || today <= status.unavailable_to))
+                            );
+                            const isEditing = editingSpaceId === space.id;
+
+                            const formatDate = (d: string | null | undefined) => d
+                                ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+                                : null;
+
                             return (
-                                <div key={space.id} className={`p-4 rounded-xl border flex items-center justify-between ${status.is_unavailable ? 'bg-red-50 border-red-200 dark:bg-red-900/10 dark:border-red-800' : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-gray-700'}`}>
-                                    <div className="flex items-center gap-4">
-                                        <div className={`size-12 rounded-lg flex items-center justify-center ${status.is_unavailable ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
-                                            <span className="material-symbols-outlined">{space.icon}</span>
+                                <div key={space.id} className={`rounded-xl border overflow-hidden transition-all ${isWithinPeriod ? 'bg-red-50 border-red-200 dark:bg-red-900/10 dark:border-red-800' : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-gray-700'
+                                    }`}>
+                                    {/* Main row */}
+                                    <div className="p-4 flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`size-12 rounded-lg flex items-center justify-center shrink-0 ${isWithinPeriod ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
+                                                }`}>
+                                                <span className="material-symbols-outlined">{space.icon}</span>
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-slate-900 dark:text-white">{space.name}</h3>
+                                                {isWithinPeriod ? (
+                                                    <div>
+                                                        <p className="text-red-600 text-xs font-bold flex items-center gap-1">
+                                                            <span className="material-symbols-outlined text-[14px]">block</span>
+                                                            {status.reason}
+                                                        </p>
+                                                        {(status.unavailable_from || status.unavailable_to) && (
+                                                            <p className="text-red-500 text-[10px] mt-0.5">
+                                                                {status.unavailable_from && status.unavailable_to
+                                                                    ? `${formatDate(status.unavailable_from)} até ${formatDate(status.unavailable_to)}`
+                                                                    : status.unavailable_to
+                                                                        ? `Até ${formatDate(status.unavailable_to)}`
+                                                                        : `A partir de ${formatDate(status.unavailable_from)}`
+                                                                }
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-green-600 text-xs font-bold flex items-center gap-1">
+                                                        <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                                                        Disponível
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="font-bold text-slate-900 dark:text-white">{space.name}</h3>
-                                            {status.is_unavailable ? (
-                                                <p className="text-red-600 text-xs font-bold flex items-center gap-1">
-                                                    <span className="material-symbols-outlined text-[14px]">block</span>
-                                                    Fechado: {status.reason}
-                                                </p>
-                                            ) : (
-                                                <p className="text-green-600 text-xs font-bold flex items-center gap-1">
-                                                    <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                                                    Disponível
-                                                </p>
+                                        <div className="flex items-center gap-2">
+                                            {isWithinPeriod && !isEditing && (
+                                                <button
+                                                    onClick={() => openUnavailableForm(space.id, status)}
+                                                    className="text-xs px-2 py-1 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 font-semibold transition-colors"
+                                                >
+                                                    Editar
+                                                </button>
                                             )}
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={!isWithinPeriod}
+                                                    onChange={() => {
+                                                        if (isWithinPeriod) {
+                                                            handleDisableSpace(space.id);
+                                                            cancelUnavailableForm();
+                                                        } else {
+                                                            openUnavailableForm(space.id, { is_unavailable: false, reason: '' });
+                                                        }
+                                                    }}
+                                                    className="sr-only peer"
+                                                />
+                                                <div className="w-11 h-6 bg-red-500 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                                            </label>
                                         </div>
                                     </div>
-                                    <div className="flex items-center">
-                                        <label className="relative inline-flex items-center cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={!status.is_unavailable}
-                                                onChange={() => toggleSpaceStatus(space.id, status.is_unavailable, status.reason)}
-                                                className="sr-only peer"
-                                            />
-                                            <div className="w-11 h-6 bg-red-500 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-                                        </label>
-                                    </div>
+
+                                    {/* Inline unavailability form */}
+                                    {isEditing && (
+                                        <div className="border-t border-dashed border-red-200 dark:border-red-800 p-4 bg-red-50/60 dark:bg-red-900/5 space-y-3">
+                                            <p className="text-xs font-bold text-red-700 dark:text-red-400 flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[14px]">event_busy</span>
+                                                Definir período de indisponibilidade
+                                            </p>
+                                            <div>
+                                                <label className="block text-[11px] font-semibold text-gray-500 mb-1">Motivo *</label>
+                                                <input
+                                                    type="text"
+                                                    value={editingReason}
+                                                    onChange={e => setEditingReason(e.target.value)}
+                                                    placeholder="Ex: Manutenção, Limpeza..."
+                                                    className="w-full h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-red-400 dark:text-white"
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Data de início</label>
+                                                    <input
+                                                        type="date"
+                                                        value={editingFrom}
+                                                        onChange={e => setEditingFrom(e.target.value)}
+                                                        className="w-full h-9 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-red-400 dark:text-white"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Data de fim</label>
+                                                    <input
+                                                        type="date"
+                                                        value={editingTo}
+                                                        onChange={e => setEditingTo(e.target.value)}
+                                                        min={editingFrom || undefined}
+                                                        className="w-full h-9 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-red-400 dark:text-white"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <p className="text-[10px] text-gray-400">Deixe as datas em branco para indisponibilidade sem prazo definido. Após a data de fim, o ambiente volta a ficar disponível automaticamente.</p>
+                                            <div className="flex gap-2 pt-1">
+                                                <button
+                                                    onClick={cancelUnavailableForm}
+                                                    className="flex-1 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                                <button
+                                                    onClick={handleSaveUnavailable}
+                                                    className="flex-1 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-xs font-bold text-white transition-colors"
+                                                >
+                                                    Confirmar Fechamento
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
