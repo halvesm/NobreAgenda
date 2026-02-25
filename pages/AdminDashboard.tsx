@@ -105,6 +105,56 @@ const AdminDashboard: React.FC = () => {
         setLoading(false);
     };
 
+    const handleClearPastBookings = async () => {
+        const today = new Date().toISOString().split('T')[0];
+        const pastCount = allBookings.filter((b: any) => b.date < today).length;
+
+        if (pastCount === 0) {
+            showModal({ title: 'Sem histórico', message: 'Não há agendamentos de dias anteriores para apagar.', type: 'info' });
+            return;
+        }
+
+        showModal({
+            title: 'Limpar Histórico',
+            message: `Isso apagará ${pastCount} agendamento(s) de dias anteriores. Essa ação não pode ser desfeita. Confirmar?`,
+            type: 'confirm',
+            onConfirm: async () => {
+                try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) return;
+
+                    const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+                    if (!profile) return;
+
+                    let query = supabase
+                        .from('bookings')
+                        .delete()
+                        .lt('date', today);
+
+                    // Regente e PCA: apenas nos próprios espaços
+                    if (profile.role === 'Regente' || profile.role === 'PCA') {
+                        const assignedIds = profile.assigned_space_ids || (profile.assigned_space_id ? [profile.assigned_space_id] : []);
+                        if (assignedIds.length > 0) {
+                            query = query.in('space_id', assignedIds);
+                        } else {
+                            showModal({ title: 'Aviso', message: 'Nenhum ambiente atribuído.', type: 'info' });
+                            return;
+                        }
+                    }
+
+                    const { error } = await query;
+
+                    if (error) throw error;
+
+                    showModal({ title: 'Concluído', message: `${pastCount} agendamento(s) anterior(es) removido(s) com sucesso.`, type: 'success' });
+                    await fetchAllBookings();
+                } catch (error: any) {
+                    showModal({ title: 'Erro', message: translateError(error.message), type: 'error' });
+                }
+            }
+        });
+    };
+
     const fetchUsers = async () => {
         setLoading(true);
         const { data, error } = await supabase
@@ -472,8 +522,27 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 ) : (
                     <div className="space-y-4 pb-10">
-                        <div className="mb-4 flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                            <p className="text-sm text-gray-500">Exibindo os agendamentos mais recentes.</p>
+                        {/* Header row with summary and clear button */}
+                        <div className="flex items-center justify-between mb-2">
+                            <div>
+                                <p className="text-sm text-gray-500">
+                                    {allBookings.filter((b: any) => b.date < new Date().toISOString().split('T')[0]).length > 0
+                                        ? <span className="text-orange-500 font-medium">
+                                            {allBookings.filter((b: any) => b.date < new Date().toISOString().split('T')[0]).length} agendamento(s) passado(s)
+                                        </span>
+                                        : <span>Nenhum histórico anterior</span>
+                                    }
+                                </p>
+                            </div>
+                            {(currentUserRole === 'Administrador' || currentUserRole === 'Regente' || currentUserRole === 'PCA' || currentUserRole === 'Núcleo Gestor') && (
+                                <button
+                                    onClick={handleClearPastBookings}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-orange-200 text-orange-600 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-900/20 text-xs font-bold transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-[15px]">delete_sweep</span>
+                                    Limpar histórico
+                                </button>
+                            )}
                         </div>
 
                         {allBookings.length === 0 ? (
@@ -482,10 +551,15 @@ const AdminDashboard: React.FC = () => {
                             <div className="space-y-3">
                                 {allBookings.map((booking: any) => {
                                     const space = SPACES.find(s => s.id === booking.space_id);
-                                    const dateObj = new Date(booking.date + 'T12:00:00');
+                                    const dateStr = booking.date;
+                                    const today = new Date().toISOString().split('T')[0];
+                                    const isPast = dateStr < today;
 
                                     return (
-                                        <div key={booking.id} className="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                                        <div key={booking.id} className={`p-3 rounded-xl shadow-sm border transition-colors ${isPast
+                                                ? 'bg-gray-50 dark:bg-slate-900/60 border-gray-100 dark:border-gray-800 opacity-70'
+                                                : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-gray-700'
+                                            }`}>
                                             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
                                                 <div className="flex gap-3 flex-1 min-w-0">
                                                     <div className="size-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
@@ -493,13 +567,18 @@ const AdminDashboard: React.FC = () => {
                                                     </div>
 
                                                     <div className="flex flex-col gap-1 w-full">
-                                                        <h3 className="font-bold text-slate-900 dark:text-white text-sm leading-tight truncate pr-2">
-                                                            {space?.name || booking.space_name}
-                                                        </h3>
+                                                        <div className="flex items-center gap-2">
+                                                            <h3 className="font-bold text-slate-900 dark:text-white text-sm leading-tight truncate pr-2">
+                                                                {space?.name || booking.space_name}
+                                                            </h3>
+                                                            {isPast && (
+                                                                <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Passado</span>
+                                                            )}
+                                                        </div>
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
                                                             <div className="flex items-center gap-1.5 whitespace-nowrap">
                                                                 <span className="material-symbols-outlined text-[14px] text-gray-400">calendar_today</span>
-                                                                {dateObj.toLocaleDateString('pt-BR')}
+                                                                {new Date(booking.date + 'T12:00:00').toLocaleDateString('pt-BR')}
                                                             </div>
                                                             <div className="flex items-center gap-1.5 whitespace-nowrap">
                                                                 <span className="material-symbols-outlined text-[14px] text-gray-400">schedule</span>
