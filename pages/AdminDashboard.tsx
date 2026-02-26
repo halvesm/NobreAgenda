@@ -264,7 +264,20 @@ const AdminDashboard: React.FC = () => {
             showModal({ title: 'Atenção', message: 'Por favor, informe o motivo da indisponibilidade.', type: 'info' });
             return;
         }
-        await saveSpaceStatus(editingSpaceId, true, editingReason.trim(), editingFrom || null, editingTo || null);
+
+        // Converter string local para ISO UTC antes de salvar
+        const toUTCISO = (localStr: string) => {
+            if (!localStr) return null;
+            return new Date(localStr).toISOString();
+        };
+
+        await saveSpaceStatus(
+            editingSpaceId,
+            true,
+            editingReason.trim(),
+            toUTCISO(editingFrom),
+            toUTCISO(editingTo)
+        );
         cancelUnavailableForm();
     };
 
@@ -411,7 +424,8 @@ const AdminDashboard: React.FC = () => {
                                     month: '2-digit',
                                     year: '2-digit',
                                     hour: '2-digit',
-                                    minute: '2-digit'
+                                    minute: '2-digit',
+                                    timeZone: 'America/Fortaleza'
                                 });
                             };
 

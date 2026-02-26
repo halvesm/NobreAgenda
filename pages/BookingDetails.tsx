@@ -101,9 +101,25 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
       }
 
       if (isCurrentlyUnavailable) {
+        const formatDateTime = (iso: string) => new Date(iso).toLocaleString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: 'America/Fortaleza'
+        });
+
+        const periodInfo = unavailableFrom && unavailableTo
+          ? `\nPeríodo: ${formatDateTime(unavailableFrom)} até ${formatDateTime(unavailableTo)}`
+          : unavailableTo
+            ? `\nAté: ${formatDateTime(unavailableTo)}`
+            : unavailableFrom
+              ? `\nA partir de: ${formatDateTime(unavailableFrom)}`
+              : '';
+
         showModal({
           title: 'Ambiente Indisponível',
-          message: `Este ambiente está indisponível.\nMotivo: ${data.reason || 'Manutenção'}`,
+          message: `Este ambiente está indisponível.\nMotivo: ${data.reason || 'Manutenção'}${periodInfo}`,
           type: 'error'
         });
         navigate('/');

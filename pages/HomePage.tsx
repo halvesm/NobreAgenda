@@ -145,7 +145,8 @@ const HomePage: React.FC<Props> = ({ user }) => {
           day: '2-digit',
           month: '2-digit',
           hour: '2-digit',
-          minute: '2-digit'
+          minute: '2-digit',
+          timeZone: 'America/Fortaleza'
         });
       };
       const endLabel = status.unavailable_to ? `Até ${formatDateTime(status.unavailable_to)}` : null;
