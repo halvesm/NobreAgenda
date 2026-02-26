@@ -1,121 +1,75 @@
-# 🚀 Deploy para Vercel
+# 🚀 Deploy do NobreAgenda
 
-Este guia mostra como fazer o deploy do NobreAgenda na Vercel.
+Este guia mostra como fazer o deploy do NobreAgenda. Recomendamos o uso da **Netlify** devido a problemas de conectividade ISP com a Vercel em algumas regiões.
 
 ## 📋 Pré-requisitos
 
-- Conta no [Vercel](https://vercel.com)
+- Conta no [Netlify](https://www.netlify.com/)
 - Conta no [GitHub](https://github.com) (recomendado)
 - Projeto Supabase configurado
 
-## 🔧 Preparação
+## 🔧 Preparação Git
 
-### 1. Inicializar Git (se ainda não foi feito)
+Se ainda não tiver o repositório no GitHub:
 
 ```bash
 git init
 git add .
-git commit -m "Initial commit"
-```
-
-### 2. Criar Repositório no GitHub
-
-1. Acesse [GitHub](https://github.com/new)
-2. Crie um novo repositório
-3. **NÃO** inicialize com README, .gitignore ou licença
-4. Copie a URL do repositório
-
-### 3. Conectar ao GitHub
-
-```bash
+git commit -m "Migration to Netlify"
 git remote add origin https://github.com/seu-usuario/seu-repositorio.git
 git branch -M main
 git push -u origin main
 ```
 
-## 🌐 Deploy na Vercel
+---
 
-### Opção 1: Via Interface Web (Recomendado)
+## 🌐 Deploy na Netlify (Recomendado)
 
-1. Acesse [Vercel](https://vercel.com) e faça login
-2. Clique em **"Add New Project"**
-3. Importe seu repositório do GitHub
-4. Configure as variáveis de ambiente:
-   - `VITE_SUPABASE_URL`: `https://yfmtmvcfevxopuaqwukh.supabase.co`
-   - `VITE_SUPABASE_ANON_KEY`: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmbXRtdmNmZXZ4b3B1YXF3dWtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcyMDE0NzEsImV4cCI6MjA4Mjc3NzQ3MX0.gJxmVgErW7EGzBfxqCsCaqPTLVF8LQ7uKdsXDNy_Ah4`
-5. Clique em **"Deploy"**
+### Passo a Passo
 
-### Opção 2: Via CLI
+1. Acesse o dashboard da [Netlify](https://app.netlify.com/).
+2. Clique em **"Add new site"** -> **"Import an existing project"**.
+3. Conecte com seu provedor Git (GitHub).
+4. Selecione o repositório `NobreAgenda`.
+5. **Configurações de Build**:
+   - **Build command**: `npm run build`
+   - **Publish directory**: `dist`
+6. Clique em **"Add environment variables"** e adicione:
+   - `VITE_SUPABASE_URL`: (Sua URL do Supabase)
+   - `VITE_SUPABASE_ANON_KEY`: (Sua Chave Anon do Supabase)
+7. Clique em **"Deploy NobreAgenda"**.
 
-```bash
-# Instalar Vercel CLI
-npm i -g vercel
+### 🎉 Pós-Deploy: Configurar Supabase
 
-# Fazer login
-vercel login
+Após o deploy, você terá a URL: `https://nobre-agenda.netlify.app`. 
+Você **PRECISA** atualizar o Supabase para que o login funcione:
 
-# Deploy
-vercel
+1. Vá ao [Dashboard do Supabase](https://supabase.com/dashboard).
+2. Vá em **Authentication** -> **URL Configuration**.
+3. Em **Site URL**, coloque: `https://nobre-agenda.netlify.app`.
+4. Em **Redirect URLs**, adicione: `https://nobre-agenda.netlify.app/**`.
 
-# Para produção
-vercel --prod
-```
+---
 
-## ⚙️ Configuração de Variáveis de Ambiente
+## 📐 Deploy na Vercel (Alternativo)
 
-As variáveis de ambiente podem ser configuradas em:
-**Project Settings → Environment Variables**
+Se preferir usar a Vercel, o arquivo `vercel.json` continua disponível. O processo é idêntico ao da Netlify, importando o repositório e configurando as variáveis de ambiente `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
 
-Variáveis necessárias:
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
+---
 
-## 🔄 Deploy Automático
+## ⚙️ Variáveis de Ambiente Necessárias
 
-Após o primeiro deploy, a Vercel irá automaticamente:
-- ✅ Fazer deploy a cada push na branch `main`
-- ✅ Criar preview deployments para Pull Requests
-- ✅ Executar o build e verificar erros
+| Variável | Descrição |
+| :--- | :--- |
+| `VITE_SUPABASE_URL` | URL do projeto no Supabase |
+| `VITE_SUPABASE_ANON_KEY` | Chave anônima (anon/public) do Supabase |
 
 ## 🛠️ Comandos Úteis
 
 ```bash
-# Ver logs do deploy
-vercel logs
+# Testar build localmente
+npm run build
 
-# Listar deployments
-vercel ls
-
-# Remover deployment
-vercel rm [deployment-url]
-
-# Abrir projeto na Vercel
-vercel open
+# Visualizar build localmente
+npm run preview
 ```
-
-## 📝 Notas Importantes
-
-1. **Não commite** o arquivo `.env.local` - ele já está no `.gitignore`
-2. As variáveis de ambiente devem ser configuradas na Vercel
-3. O arquivo `vercel.json` já está configurado para SPA routing
-4. Builds falhos não serão deployados
-
-## 🔗 Links Úteis
-
-- [Documentação Vercel](https://vercel.com/docs)
-- [Vite + Vercel](https://vercel.com/docs/frameworks/vite)
-- [Supabase Docs](https://supabase.com/docs)
-
-## 🆘 Problemas Comuns
-
-### Build falha
-- Verifique se todas as dependências estão no `package.json`
-- Confirme que o projeto builda localmente: `npm run build`
-
-### Variáveis de ambiente não funcionam
-- Certifique-se de usar o prefixo `VITE_`
-- Redeploy após adicionar variáveis: `vercel --prod`
-
-### Rotas 404
-- O `vercel.json` já está configurado para SPA routing
-- Verifique se o arquivo foi commitado

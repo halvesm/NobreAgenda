@@ -2,9 +2,9 @@
 -- Run this in Supabase SQL Editor
 
 ALTER TABLE space_maintenance
-  ADD COLUMN IF NOT EXISTS unavailable_from date,
-  ADD COLUMN IF NOT EXISTS unavailable_to date;
+  ALTER COLUMN unavailable_from TYPE timestamptz,
+  ALTER COLUMN unavailable_to TYPE timestamptz;
 
 -- Optional comment
-COMMENT ON COLUMN space_maintenance.unavailable_from IS 'Start date of planned unavailability period';
-COMMENT ON COLUMN space_maintenance.unavailable_to IS 'End date of planned unavailability period (inclusive). After this date the space is automatically treated as available.';
+COMMENT ON COLUMN space_maintenance.unavailable_from IS 'Start timestamp of planned unavailability period';
+COMMENT ON COLUMN space_maintenance.unavailable_to IS 'End timestamp of planned unavailability period. After this time the space is automatically treated as available.';

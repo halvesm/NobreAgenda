@@ -235,8 +235,16 @@ const AdminDashboard: React.FC = () => {
     const openUnavailableForm = (spaceId: string, status: { is_unavailable: boolean; reason: string; unavailable_from?: string | null; unavailable_to?: string | null }) => {
         setEditingSpaceId(spaceId);
         setEditingReason(status.reason || '');
-        setEditingFrom(status.unavailable_from || '');
-        setEditingTo(status.unavailable_to || '');
+
+        // Formato para input datetime-local: YYYY-MM-DDThh:mm
+        const formatForInput = (iso: string | null | undefined) => {
+            if (!iso) return '';
+            const d = new Date(iso);
+            return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        };
+
+        setEditingFrom(formatForInput(status.unavailable_from));
+        setEditingTo(formatForInput(status.unavailable_to));
     };
 
     const cancelUnavailableForm = () => {
@@ -384,17 +392,28 @@ const AdminDashboard: React.FC = () => {
                             return true;
                         }).map(space => {
                             const status = spacesStatus[space.id] || { is_unavailable: false, reason: '' };
-                            const today = new Date().toISOString().split('T')[0];
+                            const now = new Date().getTime();
+                            const fromTime = status.unavailable_from ? new Date(status.unavailable_from).getTime() : null;
+                            const toTime = status.unavailable_to ? new Date(status.unavailable_to).getTime() : null;
+
                             const isWithinPeriod = status.is_unavailable && (
-                                (!status.unavailable_from && !status.unavailable_to) ||
-                                ((!status.unavailable_from || today >= status.unavailable_from) &&
-                                    (!status.unavailable_to || today <= status.unavailable_to))
+                                (!fromTime && !toTime) ||
+                                ((!fromTime || now >= fromTime) &&
+                                    (!toTime || now <= toTime))
                             );
                             const isEditing = editingSpaceId === space.id;
 
-                            const formatDate = (d: string | null | undefined) => d
-                                ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
-                                : null;
+                            const formatDateTime = (d: string | null | undefined) => {
+                                if (!d) return null;
+                                const date = new Date(d);
+                                return date.toLocaleString('pt-BR', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                });
+                            };
 
                             return (
                                 <div key={space.id} className={`rounded-xl border overflow-hidden transition-all ${isWithinPeriod ? 'bg-red-50 border-red-200 dark:bg-red-900/10 dark:border-red-800' : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-gray-700'
@@ -417,10 +436,10 @@ const AdminDashboard: React.FC = () => {
                                                         {(status.unavailable_from || status.unavailable_to) && (
                                                             <p className="text-red-500 text-[10px] mt-0.5">
                                                                 {status.unavailable_from && status.unavailable_to
-                                                                    ? `${formatDate(status.unavailable_from)} até ${formatDate(status.unavailable_to)}`
+                                                                    ? `${formatDateTime(status.unavailable_from)} até ${formatDateTime(status.unavailable_to)}`
                                                                     : status.unavailable_to
-                                                                        ? `Até ${formatDate(status.unavailable_to)}`
-                                                                        : `A partir de ${formatDate(status.unavailable_from)}`
+                                                                        ? `Até ${formatDateTime(status.unavailable_to)}`
+                                                                        : `A partir de ${formatDateTime(status.unavailable_from)}`
                                                                 }
                                                             </p>
                                                         )}
@@ -480,18 +499,18 @@ const AdminDashboard: React.FC = () => {
                                             </div>
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div>
-                                                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Data de início</label>
+                                                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Início</label>
                                                     <input
-                                                        type="date"
+                                                        type="datetime-local"
                                                         value={editingFrom}
                                                         onChange={e => setEditingFrom(e.target.value)}
                                                         className="w-full h-9 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-red-400 dark:text-white"
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Data de fim</label>
+                                                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Fim</label>
                                                     <input
-                                                        type="date"
+                                                        type="datetime-local"
                                                         value={editingTo}
                                                         onChange={e => setEditingTo(e.target.value)}
                                                         min={editingFrom || undefined}
@@ -557,8 +576,8 @@ const AdminDashboard: React.FC = () => {
 
                                     return (
                                         <div key={booking.id} className={`p-3 rounded-xl shadow-sm border transition-colors ${isPast
-                                                ? 'bg-gray-50 dark:bg-slate-900/60 border-gray-100 dark:border-gray-800 opacity-70'
-                                                : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-gray-700'
+                                            ? 'bg-gray-50 dark:bg-slate-900/60 border-gray-100 dark:border-gray-800 opacity-70'
+                                            : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-gray-700'
                                             }`}>
                                             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
                                                 <div className="flex gap-3 flex-1 min-w-0">

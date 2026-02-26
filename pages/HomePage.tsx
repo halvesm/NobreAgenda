@@ -63,12 +63,24 @@ const HomePage: React.FC<Props> = ({ user }) => {
 
   const isCurrentlyUnavailable = (status: { is_unavailable: boolean; unavailable_from?: string | null; unavailable_to?: string | null } | undefined): boolean => {
     if (!status || !status.is_unavailable) return false;
-    const today = new Date().toISOString().split('T')[0];
-    // No dates set → indefinite unavailability
-    if (!status.unavailable_from && !status.unavailable_to) return true;
-    const afterStart = !status.unavailable_from || today >= status.unavailable_from;
-    const beforeEnd = !status.unavailable_to || today <= status.unavailable_to;
-    return afterStart && beforeEnd;
+
+    const unavailableFrom = status.unavailable_from;
+    const unavailableTo = status.unavailable_to;
+
+    let isCurrentlyUnavailableResult = false;
+    if (!unavailableFrom && !unavailableTo) {
+      // No period set → indefinite
+      isCurrentlyUnavailableResult = true;
+    } else {
+      const now = new Date().getTime();
+      const fromTime = unavailableFrom ? new Date(unavailableFrom).getTime() : null;
+      const toTime = unavailableTo ? new Date(unavailableTo).getTime() : null;
+
+      const afterStart = !fromTime || now >= fromTime;
+      const beforeEnd = !toTime || now <= toTime;
+      isCurrentlyUnavailableResult = afterStart && beforeEnd;
+    }
+    return isCurrentlyUnavailableResult;
   };
 
   const toggleFavorite = async (spaceId: string, e: React.MouseEvent) => {
@@ -126,10 +138,17 @@ const HomePage: React.FC<Props> = ({ user }) => {
   const renderMaintenanceOverlay = (spaceId: string) => {
     const status = spacesStatus[spaceId];
     if (status && isCurrentlyUnavailable(status)) {
-      const formatDate = (d: string | null | undefined) => d
-        ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-        : null;
-      const endLabel = status.unavailable_to ? `Até ${formatDate(status.unavailable_to)}` : null;
+      const formatDateTime = (d: string | null | undefined) => {
+        if (!d) return null;
+        const date = new Date(d);
+        return date.toLocaleString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      };
+      const endLabel = status.unavailable_to ? `Até ${formatDateTime(status.unavailable_to)}` : null;
       return (
         <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 z-20 flex flex-col items-center justify-center p-4 text-center backdrop-blur-sm cursor-not-allowed">
           <span className="material-symbols-outlined text-4xl text-red-500 mb-2">block</span>

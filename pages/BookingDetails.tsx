@@ -91,8 +91,12 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
         // No period set → indefinite
         isCurrentlyUnavailable = true;
       } else {
-        const afterStart = !unavailableFrom || today >= unavailableFrom;
-        const beforeEnd = !unavailableTo || today <= unavailableTo;
+        const now = new Date().getTime();
+        const fromTime = unavailableFrom ? new Date(unavailableFrom).getTime() : null;
+        const toTime = unavailableTo ? new Date(unavailableTo).getTime() : null;
+
+        const afterStart = !fromTime || now >= fromTime;
+        const beforeEnd = !toTime || now <= toTime;
         isCurrentlyUnavailable = afterStart && beforeEnd;
       }
 
