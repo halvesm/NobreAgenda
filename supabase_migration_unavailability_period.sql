@@ -1,10 +1,11 @@
--- Migration: Add unavailable_from and unavailable_to to space_maintenance
 -- Run this in Supabase SQL Editor
+-- This reverts the previous timestamptz change and adds lesson-based locking
 
 ALTER TABLE space_maintenance
-  ALTER COLUMN unavailable_from TYPE timestamptz,
-  ALTER COLUMN unavailable_to TYPE timestamptz;
+  ALTER COLUMN unavailable_from TYPE date,
+  ALTER COLUMN unavailable_to TYPE date,
+  ADD COLUMN IF NOT EXISTS unavailable_lessons integer[] DEFAULT NULL;
 
--- Optional comment
-COMMENT ON COLUMN space_maintenance.unavailable_from IS 'Start timestamp of planned unavailability period';
-COMMENT ON COLUMN space_maintenance.unavailable_to IS 'End timestamp of planned unavailability period. After this time the space is automatically treated as available.';
+COMMENT ON COLUMN space_maintenance.unavailable_from IS 'Start date of planned unavailability period';
+COMMENT ON COLUMN space_maintenance.unavailable_to IS 'End date of planned unavailability period (inclusive)';
+COMMENT ON COLUMN space_maintenance.unavailable_lessons IS 'Specific lesson indices (0-indexed) that are unavailable. If NULL or empty, the whole day is blocked.';

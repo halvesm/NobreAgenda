@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useModal } from '../context/ModalContext';
 import { translateError } from '../lib/i18n';
 import { User } from '../types';
-import { SPACES, DEPARTMENTS } from '../constants';
+import { SPACES, LESSONS, DEPARTMENTS } from '../constants';
 
 const AdminDashboard: React.FC = () => {
     const { showModal } = useModal();
@@ -55,11 +55,12 @@ const AdminDashboard: React.FC = () => {
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<'users' | 'spaces' | 'bookings'>('bookings');
-    const [spacesStatus, setSpacesStatus] = useState<Record<string, { is_unavailable: boolean; reason: string; unavailable_from?: string | null; unavailable_to?: string | null }>>({});
+    const [spacesStatus, setSpacesStatus] = useState<Record<string, { is_unavailable: boolean; reason: string; unavailable_from?: string | null; unavailable_to?: string | null; unavailable_lessons?: number[] | null }>>({});
     const [editingSpaceId, setEditingSpaceId] = useState<string | null>(null);
     const [editingReason, setEditingReason] = useState('');
     const [editingFrom, setEditingFrom] = useState('');
     const [editingTo, setEditingTo] = useState('');
+    const [editingLessons, setEditingLessons] = useState<number[]>([]);
     const [allBookings, setAllBookings] = useState<any[]>([]);
 
     useEffect(() => {
@@ -188,12 +189,15 @@ const AdminDashboard: React.FC = () => {
         if (data) {
             const map: any = {};
             data.forEach((item: any) => {
-                map[item.space_id] = {
-                    is_unavailable: item.is_unavailable,
-                    reason: item.reason,
-                    unavailable_from: item.unavailable_from || null,
-                    unavailable_to: item.unavailable_to || null,
-                };
+                if (item.is_unavailable) {
+                    map[item.space_id] = {
+                        is_unavailable: item.is_unavailable,
+                        reason: item.reason,
+                        unavailable_from: item.unavailable_from || null,
+                        unavailable_to: item.unavailable_to || null,
+                        unavailable_lessons: item.unavailable_lessons || null
+                    };
+                }
             });
             setSpacesStatus(map);
         }
@@ -232,19 +236,12 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
-    const openUnavailableForm = (spaceId: string, status: { is_unavailable: boolean; reason: string; unavailable_from?: string | null; unavailable_to?: string | null }) => {
+    const openUnavailableForm = (spaceId: string, status: { is_unavailable: boolean; reason: string; unavailable_from?: string | null; unavailable_to?: string | null; unavailable_lessons?: number[] | null }) => {
         setEditingSpaceId(spaceId);
         setEditingReason(status.reason || '');
-
-        // Formato para input datetime-local: YYYY-MM-DDThh:mm
-        const formatForInput = (iso: string | null | undefined) => {
-            if (!iso) return '';
-            const d = new Date(iso);
-            return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-        };
-
-        setEditingFrom(formatForInput(status.unavailable_from));
-        setEditingTo(formatForInput(status.unavailable_to));
+        setEditingFrom(status.unavailable_from || '');
+        setEditingTo(status.unavailable_to || '');
+        setEditingLessons(status.unavailable_lessons || []);
     };
 
     const cancelUnavailableForm = () => {
@@ -252,10 +249,11 @@ const AdminDashboard: React.FC = () => {
         setEditingReason('');
         setEditingFrom('');
         setEditingTo('');
+        setEditingLessons([]);
     };
 
     const handleDisableSpace = async (spaceId: string) => {
-        await saveSpaceStatus(spaceId, false, '', null, null);
+        await saveSpaceStatus(spaceId, false, '', null, null, null);
     };
 
     const handleSaveUnavailable = async () => {
@@ -265,23 +263,18 @@ const AdminDashboard: React.FC = () => {
             return;
         }
 
-        // Converter string local para ISO UTC antes de salvar
-        const toUTCISO = (localStr: string) => {
-            if (!localStr) return null;
-            return new Date(localStr).toISOString();
-        };
-
         await saveSpaceStatus(
             editingSpaceId,
             true,
             editingReason.trim(),
-            toUTCISO(editingFrom),
-            toUTCISO(editingTo)
+            editingFrom || null,
+            editingTo || null,
+            editingLessons.length > 0 ? editingLessons : null
         );
         cancelUnavailableForm();
     };
 
-    const saveSpaceStatus = async (spaceId: string, isUnavailable: boolean, reason: string, unavailableFrom: string | null, unavailableTo: string | null) => {
+    const saveSpaceStatus = async (spaceId: string, isUnavailable: boolean, reason: string, unavailableFrom: string | null, unavailableTo: string | null, unavailableLessons: number[] | null) => {
         try {
             const { error } = await supabase
                 .from('space_maintenance')
@@ -291,6 +284,7 @@ const AdminDashboard: React.FC = () => {
                     reason: reason,
                     unavailable_from: unavailableFrom,
                     unavailable_to: unavailableTo,
+                    unavailable_lessons: (unavailableLessons && unavailableLessons.length > 0) ? unavailableLessons : null,
                     updated_at: new Date()
                 }, { onConflict: 'space_id' });
 
@@ -299,7 +293,7 @@ const AdminDashboard: React.FC = () => {
         } catch (error: any) {
             showModal({
                 title: 'Erro',
-                message: translateError(error.message),
+                message: `Erro ao salvar status: ${error.message}`,
                 type: 'error'
             });
         }
@@ -405,16 +399,23 @@ const AdminDashboard: React.FC = () => {
                             return true;
                         }).map(space => {
                             const status = spacesStatus[space.id] || { is_unavailable: false, reason: '' };
-                            const now = new Date().getTime();
-                            const fromTime = status.unavailable_from ? new Date(status.unavailable_from).getTime() : null;
-                            const toTime = status.unavailable_to ? new Date(status.unavailable_to).getTime() : null;
-
+                            const today = new Date().toISOString().split('T')[0];
                             const isWithinPeriod = status.is_unavailable && (
-                                (!fromTime && !toTime) ||
-                                ((!fromTime || now >= fromTime) &&
-                                    (!toTime || now <= toTime))
+                                (!status.unavailable_from && !status.unavailable_to) ||
+                                ((!status.unavailable_from || today >= status.unavailable_from) &&
+                                    (!status.unavailable_to || today <= status.unavailable_to))
                             );
                             const isEditing = editingSpaceId === space.id;
+
+                            const formatStaticDate = (d: string | null | undefined) => {
+                                if (!d) return null;
+                                // Add T12:00:00 to avoid timezone shift on plain date strings
+                                return new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: '2-digit'
+                                });
+                            };
 
                             const formatDateTime = (d: string | null | undefined) => {
                                 if (!d) return null;
@@ -450,11 +451,16 @@ const AdminDashboard: React.FC = () => {
                                                         {(status.unavailable_from || status.unavailable_to) && (
                                                             <p className="text-red-500 text-[10px] mt-0.5">
                                                                 {status.unavailable_from && status.unavailable_to
-                                                                    ? `${formatDateTime(status.unavailable_from)} até ${formatDateTime(status.unavailable_to)}`
+                                                                    ? `${formatStaticDate(status.unavailable_from)} até ${formatStaticDate(status.unavailable_to)}`
                                                                     : status.unavailable_to
-                                                                        ? `Até ${formatDateTime(status.unavailable_to)}`
-                                                                        : `A partir de ${formatDateTime(status.unavailable_from)}`
+                                                                        ? `Até ${formatStaticDate(status.unavailable_to)}`
+                                                                        : `A partir de ${formatStaticDate(status.unavailable_from)}`
                                                                 }
+                                                            </p>
+                                                        )}
+                                                        {status.unavailable_lessons && (
+                                                            <p className="text-red-400 text-[9px] mt-0.5 italic">
+                                                                Aulas: {status.unavailable_lessons.map((i: number) => i + 1).join(', ')}
                                                             </p>
                                                         )}
                                                     </div>
@@ -513,24 +519,52 @@ const AdminDashboard: React.FC = () => {
                                             </div>
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div>
-                                                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Início</label>
+                                                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Data Início</label>
                                                     <input
-                                                        type="datetime-local"
+                                                        type="date"
                                                         value={editingFrom}
                                                         onChange={e => setEditingFrom(e.target.value)}
                                                         className="w-full h-9 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-red-400 dark:text-white"
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Fim</label>
+                                                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Data Fim</label>
                                                     <input
-                                                        type="datetime-local"
+                                                        type="date"
                                                         value={editingTo}
                                                         onChange={e => setEditingTo(e.target.value)}
                                                         min={editingFrom || undefined}
                                                         className="w-full h-9 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-red-400 dark:text-white"
                                                     />
                                                 </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-[11px] font-semibold text-gray-500 mb-2">Bloquear Aulas Específicas (opcional)</label>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    {LESSONS.map((name, idx) => {
+                                                        const isSelected = editingLessons.includes(idx);
+                                                        return (
+                                                            <button
+                                                                key={idx}
+                                                                onClick={() => {
+                                                                    setEditingLessons(prev =>
+                                                                        prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
+                                                                    );
+                                                                }}
+                                                                className={`h-8 rounded-lg text-xs font-medium transition-all border ${isSelected
+                                                                        ? 'bg-red-500 border-red-500 text-white shadow-sm'
+                                                                        : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-red-300'
+                                                                    }`}
+                                                            >
+                                                                {name}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                                <p className="text-[10px] text-gray-400 mt-2 italic">
+                                                    * Se nenhuma aula for selecionada, o ambiente será bloqueado o dia todo.
+                                                </p>
                                             </div>
                                             <p className="text-[10px] text-gray-400">Deixe as datas em branco para indisponibilidade sem prazo definido. Após a data de fim, o ambiente volta a ficar disponível automaticamente.</p>
                                             <div className="flex gap-2 pt-1">

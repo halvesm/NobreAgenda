@@ -61,26 +61,25 @@ const HomePage: React.FC<Props> = ({ user }) => {
     }
   };
 
-  const isCurrentlyUnavailable = (status: { is_unavailable: boolean; unavailable_from?: string | null; unavailable_to?: string | null } | undefined): boolean => {
+  const isCurrentlyUnavailable = (status: { is_unavailable: boolean; unavailable_from?: string | null; unavailable_to?: string | null; unavailable_lessons?: number[] | null } | undefined): boolean => {
     if (!status || !status.is_unavailable) return false;
 
-    const unavailableFrom = status.unavailable_from;
-    const unavailableTo = status.unavailable_to;
+    const today = new Date().toISOString().split('T')[0];
+    const fromDate = status.unavailable_from;
+    const toDate = status.unavailable_to;
 
-    let isCurrentlyUnavailableResult = false;
-    if (!unavailableFrom && !unavailableTo) {
-      // No period set → indefinite
-      isCurrentlyUnavailableResult = true;
-    } else {
-      const now = new Date().getTime();
-      const fromTime = unavailableFrom ? new Date(unavailableFrom).getTime() : null;
-      const toTime = unavailableTo ? new Date(unavailableTo).getTime() : null;
-
-      const afterStart = !fromTime || now >= fromTime;
-      const beforeEnd = !toTime || now <= toTime;
-      isCurrentlyUnavailableResult = afterStart && beforeEnd;
+    // Check if within date range
+    if (fromDate || toDate) {
+      if (fromDate && today < fromDate) return false;
+      if (toDate && today > toDate) return false;
     }
-    return isCurrentlyUnavailableResult;
+
+    // If we are here, we are within the date range or no range is set (indefinite)
+    // If no lessons specified, it's blocked the whole day
+    if (!status.unavailable_lessons || status.unavailable_lessons.length === 0) return true;
+
+    // If lessons are specified, it's partially unavailable
+    return true; // Still show overlay, but we'll show details in the label
   };
 
   const toggleFavorite = async (spaceId: string, e: React.MouseEvent) => {
@@ -138,23 +137,27 @@ const HomePage: React.FC<Props> = ({ user }) => {
   const renderMaintenanceOverlay = (spaceId: string) => {
     const status = spacesStatus[spaceId];
     if (status && isCurrentlyUnavailable(status)) {
-      const formatDateTime = (d: string | null | undefined) => {
-        if (!d) return null;
-        const date = new Date(d);
-        return date.toLocaleString('pt-BR', {
-          day: '2-digit',
-          month: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZone: 'America/Fortaleza'
-        });
-      };
-      const endLabel = status.unavailable_to ? `Até ${formatDateTime(status.unavailable_to)}` : null;
+      const formatStaticDate = (d: string | null | undefined) => d
+        ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+        : null;
+
+      const isPartial = status.unavailable_lessons && status.unavailable_lessons.length > 0;
+      const endLabel = status.unavailable_to ? `Até ${formatStaticDate(status.unavailable_to)}` : null;
+
       return (
         <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 z-20 flex flex-col items-center justify-center p-4 text-center backdrop-blur-sm cursor-not-allowed">
-          <span className="material-symbols-outlined text-4xl text-red-500 mb-2">block</span>
-          <p className="text-red-600 dark:text-red-400 font-bold text-sm">Indisponível</p>
-          <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">{status.reason}</p>
+          <span className="material-symbols-outlined text-4xl text-red-500 mb-2">
+            {isPartial ? 'construction' : 'block'}
+          </span>
+          <p className="text-red-600 dark:text-red-400 font-bold text-sm">
+            {isPartial ? 'Indisponibilidade Parcial' : 'Indisponível'}
+          </p>
+          <p className="text-gray-500 dark:text-gray-400 text-xs mt-1 line-clamp-2">{status.reason}</p>
+          {isPartial && (
+            <p className="text-red-400 text-[10px] mt-0.5">
+              Aulas: {status.unavailable_lessons!.map(i => i + 1).join(', ')}
+            </p>
+          )}
           {endLabel && <p className="text-gray-400 dark:text-gray-500 text-[10px] mt-0.5">{endLabel}</p>}
         </div>
       );

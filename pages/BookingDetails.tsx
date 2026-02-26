@@ -34,6 +34,7 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
   const [loading, setLoading] = useState(false);
   const [existingBookings, setExistingBookings] = useState<Booking[]>([]);
   const [existingUserId, setExistingUserId] = useState<string | null>(null);
+  const [maintenanceStatus, setMaintenanceStatus] = useState<any>(null);
 
   // Carregar dados da edição
   useEffect(() => {
@@ -80,6 +81,8 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
       .eq('space_id', id)
       .single();
 
+    if (data) setMaintenanceStatus(data);
+
     if (data && data.is_unavailable) {
       // Check period-based unavailability
       const today = new Date().toISOString().split('T')[0];
@@ -88,38 +91,36 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
 
       let isCurrentlyUnavailable = false;
       if (!unavailableFrom && !unavailableTo) {
-        // No period set → indefinite
+        // No range set → permanent/indefinite
         isCurrentlyUnavailable = true;
       } else {
-        const now = new Date().getTime();
-        const fromTime = unavailableFrom ? new Date(unavailableFrom).getTime() : null;
-        const toTime = unavailableTo ? new Date(unavailableTo).getTime() : null;
-
-        const afterStart = !fromTime || now >= fromTime;
-        const beforeEnd = !toTime || now <= toTime;
+        const afterStart = !unavailableFrom || today >= unavailableFrom;
+        const beforeEnd = !unavailableTo || today <= unavailableTo;
         isCurrentlyUnavailable = afterStart && beforeEnd;
       }
 
-      if (isCurrentlyUnavailable) {
-        const formatDateTime = (iso: string) => new Date(iso).toLocaleString('pt-BR', {
+      // ONLY block the whole page if there are NO specific lessons selected
+      // (meaning the block is for the whole day)
+      const isWholeDayBlock = !data.unavailable_lessons || data.unavailable_lessons.length === 0;
+
+      if (isCurrentlyUnavailable && isWholeDayBlock) {
+        const formatStaticDate = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', {
           day: '2-digit',
           month: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZone: 'America/Fortaleza'
+          year: '2-digit'
         });
 
         const periodInfo = unavailableFrom && unavailableTo
-          ? `\nPeríodo: ${formatDateTime(unavailableFrom)} até ${formatDateTime(unavailableTo)}`
+          ? `\nPeríodo: ${formatStaticDate(unavailableFrom)} até ${formatStaticDate(unavailableTo)}`
           : unavailableTo
-            ? `\nAté: ${formatDateTime(unavailableTo)}`
+            ? `\nAté: ${formatStaticDate(unavailableTo)}`
             : unavailableFrom
-              ? `\nA partir de: ${formatDateTime(unavailableFrom)}`
+              ? `\nA partir de: ${formatStaticDate(unavailableFrom)}`
               : '';
 
         showModal({
           title: 'Ambiente Indisponível',
-          message: `Este ambiente está indisponível.\nMotivo: ${data.reason || 'Manutenção'}${periodInfo}`,
+          message: `Este ambiente está indisponível para o dia todo.\nMotivo: ${data.reason || 'Manutenção'}${periodInfo}`,
           type: 'error'
         });
         navigate('/');
@@ -161,8 +162,30 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
 
   if (!space) return <div>Espaço não encontrado.</div>;
 
+  const isLessonMaintenance = (index: number) => {
+    if (!selectedDate || !maintenanceStatus || !maintenanceStatus.is_unavailable) return false;
+
+    const dateStr = selectedDate.toISOString().split('T')[0];
+    const fromDate = maintenanceStatus.unavailable_from;
+    const toDate = maintenanceStatus.unavailable_to;
+
+    // Check date range
+    if (fromDate || toDate) {
+      if (fromDate && dateStr < fromDate) return false;
+      if (toDate && dateStr > toDate) return false;
+    }
+
+    // If no lessons selected, block whole day
+    if (!maintenanceStatus.unavailable_lessons || maintenanceStatus.unavailable_lessons.length === 0) return true;
+
+    // Check specific lesson
+    return maintenanceStatus.unavailable_lessons.includes(index);
+  };
+
   const toggleLesson = (index: number) => {
     if (!selectedDate) return;
+
+    if (isLessonMaintenance(index)) return;
 
     const dateStr = selectedDate.toISOString().split('T')[0];
     const isOccupied = existingBookings.some(b =>
@@ -363,6 +386,10 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
 
   const isLessonOccupied = (lessonIndex: number) => {
     if (!selectedDate) return false;
+
+    // Check maintenance first
+    if (isLessonMaintenance(lessonIndex)) return true;
+
     const dateStr = selectedDate.toISOString().split('T')[0];
     return existingBookings.some(b =>
       b.date === dateStr &&
