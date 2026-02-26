@@ -55,11 +55,10 @@ const AdminDashboard: React.FC = () => {
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<'users' | 'spaces' | 'bookings'>('bookings');
-    const [spacesStatus, setSpacesStatus] = useState<Record<string, { is_unavailable: boolean; reason: string; unavailable_from?: string | null; unavailable_to?: string | null; unavailable_lessons?: number[] | null }>>({});
+    const [spacesStatus, setSpacesStatus] = useState<Record<string, { is_unavailable: boolean; reason: string; unavailable_from?: string | null; unavailable_lessons?: number[] | null }>>({});
     const [editingSpaceId, setEditingSpaceId] = useState<string | null>(null);
     const [editingReason, setEditingReason] = useState('');
     const [editingFrom, setEditingFrom] = useState('');
-    const [editingTo, setEditingTo] = useState('');
     const [editingLessons, setEditingLessons] = useState<number[]>([]);
     const [allBookings, setAllBookings] = useState<any[]>([]);
 
@@ -194,7 +193,6 @@ const AdminDashboard: React.FC = () => {
                         is_unavailable: item.is_unavailable,
                         reason: item.reason,
                         unavailable_from: item.unavailable_from || null,
-                        unavailable_to: item.unavailable_to || null,
                         unavailable_lessons: item.unavailable_lessons || null
                     };
                 }
@@ -236,11 +234,10 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
-    const openUnavailableForm = (spaceId: string, status: { is_unavailable: boolean; reason: string; unavailable_from?: string | null; unavailable_to?: string | null; unavailable_lessons?: number[] | null }) => {
+    const openUnavailableForm = (spaceId: string, status: { is_unavailable: boolean; reason: string; unavailable_from?: string | null; unavailable_lessons?: number[] | null }) => {
         setEditingSpaceId(spaceId);
         setEditingReason(status.reason || '');
         setEditingFrom(status.unavailable_from || '');
-        setEditingTo(status.unavailable_to || '');
         setEditingLessons(status.unavailable_lessons || []);
     };
 
@@ -248,12 +245,11 @@ const AdminDashboard: React.FC = () => {
         setEditingSpaceId(null);
         setEditingReason('');
         setEditingFrom('');
-        setEditingTo('');
         setEditingLessons([]);
     };
 
     const handleDisableSpace = async (spaceId: string) => {
-        await saveSpaceStatus(spaceId, false, '', null, null, null);
+        await saveSpaceStatus(spaceId, false, '', null, null);
     };
 
     const handleSaveUnavailable = async () => {
@@ -268,13 +264,12 @@ const AdminDashboard: React.FC = () => {
             true,
             editingReason.trim(),
             editingFrom || null,
-            editingTo || null,
-            editingLessons.length > 0 ? editingLessons : null
+            editingLessons
         );
         cancelUnavailableForm();
     };
 
-    const saveSpaceStatus = async (spaceId: string, isUnavailable: boolean, reason: string, unavailableFrom: string | null, unavailableTo: string | null, unavailableLessons: number[] | null) => {
+    const saveSpaceStatus = async (spaceId: string, isUnavailable: boolean, reason: string, unavailableFrom: string | null, unavailableLessons: number[] | null) => {
         try {
             const { error } = await supabase
                 .from('space_maintenance')
@@ -283,7 +278,6 @@ const AdminDashboard: React.FC = () => {
                     is_unavailable: isUnavailable,
                     reason: reason,
                     unavailable_from: unavailableFrom,
-                    unavailable_to: unavailableTo,
                     unavailable_lessons: (unavailableLessons && unavailableLessons.length > 0) ? unavailableLessons : null,
                     updated_at: new Date()
                 }, { onConflict: 'space_id' });
@@ -517,23 +511,13 @@ const AdminDashboard: React.FC = () => {
                                                     className="w-full h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-red-400 dark:text-white"
                                                 />
                                             </div>
-                                            <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid grid-cols-1 gap-3">
                                                 <div>
-                                                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Data Início</label>
+                                                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Data da Indisponibilidade</label>
                                                     <input
                                                         type="date"
                                                         value={editingFrom}
                                                         onChange={e => setEditingFrom(e.target.value)}
-                                                        className="w-full h-9 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-red-400 dark:text-white"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Data Fim</label>
-                                                    <input
-                                                        type="date"
-                                                        value={editingTo}
-                                                        onChange={e => setEditingTo(e.target.value)}
-                                                        min={editingFrom || undefined}
                                                         className="w-full h-9 px-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-red-400 dark:text-white"
                                                     />
                                                 </div>
@@ -553,8 +537,8 @@ const AdminDashboard: React.FC = () => {
                                                                     );
                                                                 }}
                                                                 className={`h-8 rounded-lg text-xs font-medium transition-all border ${isSelected
-                                                                        ? 'bg-red-500 border-red-500 text-white shadow-sm'
-                                                                        : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-red-300'
+                                                                    ? 'bg-red-500 border-red-500 text-white shadow-sm'
+                                                                    : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-red-300'
                                                                     }`}
                                                             >
                                                                 {name}

@@ -110,13 +110,9 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
           year: '2-digit'
         });
 
-        const periodInfo = unavailableFrom && unavailableTo
-          ? `\nPeríodo: ${formatStaticDate(unavailableFrom)} até ${formatStaticDate(unavailableTo)}`
-          : unavailableTo
-            ? `\nAté: ${formatStaticDate(unavailableTo)}`
-            : unavailableFrom
-              ? `\nA partir de: ${formatStaticDate(unavailableFrom)}`
-              : '';
+        const periodInfo = unavailableFrom
+          ? `\nData: ${formatStaticDate(unavailableFrom)}`
+          : '';
 
         showModal({
           title: 'Ambiente Indisponível',
@@ -166,14 +162,10 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
     if (!selectedDate || !maintenanceStatus || !maintenanceStatus.is_unavailable) return false;
 
     const dateStr = selectedDate.toISOString().split('T')[0];
-    const fromDate = maintenanceStatus.unavailable_from;
-    const toDate = maintenanceStatus.unavailable_to;
+    const targetDate = maintenanceStatus.unavailable_from;
 
-    // Check date range
-    if (fromDate || toDate) {
-      if (fromDate && dateStr < fromDate) return false;
-      if (toDate && dateStr > toDate) return false;
-    }
+    // Check exact date
+    if (dateStr !== targetDate) return false;
 
     // If no lessons selected, block whole day
     if (!maintenanceStatus.unavailable_lessons || maintenanceStatus.unavailable_lessons.length === 0) return true;

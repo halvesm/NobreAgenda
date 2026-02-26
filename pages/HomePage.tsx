@@ -65,14 +65,10 @@ const HomePage: React.FC<Props> = ({ user }) => {
     if (!status || !status.is_unavailable) return false;
 
     const today = new Date().toISOString().split('T')[0];
-    const fromDate = status.unavailable_from;
-    const toDate = status.unavailable_to;
+    const targetDate = status.unavailable_from;
 
-    // Check if within date range
-    if (fromDate || toDate) {
-      if (fromDate && today < fromDate) return false;
-      if (toDate && today > toDate) return false;
-    }
+    // Only unavailable if it's the specific target date
+    if (!targetDate || today !== targetDate) return false;
 
     // If we are here, we are within the date range or no range is set (indefinite)
     // If no lessons specified, it's blocked the whole day
@@ -142,7 +138,6 @@ const HomePage: React.FC<Props> = ({ user }) => {
         : null;
 
       const isPartial = status.unavailable_lessons && status.unavailable_lessons.length > 0;
-      const endLabel = status.unavailable_to ? `Até ${formatStaticDate(status.unavailable_to)}` : null;
 
       return (
         <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 z-20 flex flex-col items-center justify-center p-4 text-center backdrop-blur-sm cursor-not-allowed">
@@ -158,7 +153,6 @@ const HomePage: React.FC<Props> = ({ user }) => {
               Aulas: {status.unavailable_lessons!.map(i => i + 1).join(', ')}
             </p>
           )}
-          {endLabel && <p className="text-gray-400 dark:text-gray-500 text-[10px] mt-0.5">{endLabel}</p>}
         </div>
       );
     }
