@@ -1,12 +1,20 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
+import { subscribeToPush } from '../lib/pushManager';
 
 interface LayoutProps {
     children: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
+    useEffect(() => {
+        // Tentar inscrever para push ao carregar o app
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            subscribeToPush();
+        }
+    }, []);
+
     return (
         <div className="min-h-screen bg-background-light dark:bg-background-dark">
             {/* Desktop Sidebar */}
