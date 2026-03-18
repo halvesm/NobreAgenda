@@ -487,7 +487,7 @@ const AdminDashboard: React.FC = () => {
                                                         )}
                                                         {status.unavailable_lessons && (
                                                             <p className="text-red-400 text-[9px] mt-0.5 italic">
-                                                                Aulas: {status.unavailable_lessons.map((i: number) => i + 1).join(', ')}
+                                                                Aulas: {status.unavailable_lessons.map((i: number) => LESSONS[i]).join(', ')}
                                                             </p>
                                                         )}
                                                     </div>

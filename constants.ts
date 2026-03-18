@@ -141,9 +141,11 @@ export const COURSES = [
 ];
 
 export const LESSONS = [
-  '1ª Aula', '2ª Aula', '3ª Aula', '4ª Aula', '5ª Aula',
+  '1ª Aula', '2ª Aula',
   'Interv. Manhã',
-  '6ª Aula', '7ª Aula', '8ª Aula', '9ª Aula',
+  '3ª Aula', '4ª Aula', '5ª Aula',
   'Almoço',
-  'Interv. Tarde'
+  '6ª Aula', '7ª Aula',
+  'Interv. Tarde',
+  '8ª Aula', '9ª Aula'
 ];

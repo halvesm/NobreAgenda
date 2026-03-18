@@ -23,7 +23,7 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
   const editId = query.get('editId');
   const space = SPACES.find(s => s.id === id);
   const isAuditorum = space?.id === '8';
-  const allLessons = isAuditorum ? [...LESSONS, 'Almoço'] : LESSONS;
+  const allLessons = LESSONS;
 
   // Estados do Calendário
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -197,7 +197,7 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
 
     if (isOccupied) return;
 
-    if (isAuditorum && index === LESSONS.length) {
+    if (isAuditorum && LESSONS[index] === 'Almoço') {
       const canBookLunch = user.role === 'Administrador' ||
         user.role === 'Núcleo Gestor' ||
         user.role === 'Coordenador(a)' ||
@@ -563,8 +563,7 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
                             'bg-white dark:bg-[#1a2634] border-gray-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 hover:border-primary/50'
                           }`}
                         >
-                          <span className="text-xs font-black">{idx + 1}</span>
-                          <span className="text-[10px] opacity-80 uppercase leading-none truncate w-full px-1">{lessonLabel.replace(' Aula', '')}</span>
+                          <span className="text-[10px] opacity-80 uppercase leading-none truncate w-full px-1">{lessonLabel}</span>
                           {isSelected && (
                             <div className="absolute -top-1.5 -right-1.5 bg-primary text-white rounded-full p-0.5 shadow-sm">
                               <span className="material-symbols-outlined text-[10px] block font-bold">check</span>
