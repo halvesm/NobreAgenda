@@ -14,25 +14,25 @@ export default defineConfig(({ mode }) => {
         react(),
         VitePWA({
           registerType: 'autoUpdate',
-          includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+          includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'pwa-icon.png'],
           manifest: {
             name: 'Nobre Agenda',
             short_name: 'NobreAgenda',
             description: 'Sistema de Agendamento Escolar',
-            theme_color: '#3b82f6',
+            theme_color: '#FE7F2D',
             icons: [
               {
-                src: 'pwa-192x192.png',
+                src: 'pwa-icon.png',
                 sizes: '192x192',
                 type: 'image/png'
               },
               {
-                src: 'pwa-512x512.png',
+                src: 'pwa-icon.png',
                 sizes: '512x512',
                 type: 'image/png'
               },
               {
-                src: 'pwa-512x512.png',
+                src: 'pwa-icon.png',
                 sizes: '512x512',
                 type: 'image/png',
                 purpose: 'any maskable'
