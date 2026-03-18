@@ -666,7 +666,7 @@ const AdminDashboard: React.FC = () => {
                                                         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-[11px] text-gray-500">
                                                             <div className="flex items-center gap-1">
                                                                 <span className="material-symbols-outlined text-[12px]">schedule</span>
-                                                                {[...booking.lessons].sort((a: number, b: number) => a - b).map((l: number) => `${l + 1}ª`).join(', ')}
+                                                                {[...booking.lessons].sort((a: number, b: number) => a - b).map((l: number) => LESSONS[l] || `${l + 1}ª`).join(', ')}
                                                             </div>
                                                             <div className="flex items-center gap-1">
                                                                 <span className="material-symbols-outlined text-[12px]">person</span>
@@ -742,7 +742,7 @@ const AdminDashboard: React.FC = () => {
                                                             <div className="flex items-center gap-1.5 whitespace-nowrap">
                                                                 <span className="material-symbols-outlined text-[14px] text-gray-400">schedule</span>
                                                                 <span className="truncate">
-                                                                    {[...booking.lessons].sort((a: number, b: number) => a - b).map((l: number) => `${l + 1}ª`).join(', ')} Aula(s)
+                                                                    {[...booking.lessons].sort((a: number, b: number) => a - b).map((l: number) => LESSONS[l] || `${l + 1}ª`).join(', ')}
                                                                 </span>
                                                             </div>
                                                             <div className="flex items-center gap-1.5 col-span-1 sm:col-span-2 overflow-hidden">

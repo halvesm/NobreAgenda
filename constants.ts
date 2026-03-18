@@ -140,4 +140,10 @@ export const COURSES = [
   'Outros'
 ];
 
-export const LESSONS = Array.from({ length: 9 }, (_, i) => `${i + 1}ª Aula`);
+export const LESSONS = [
+  '1ª Aula', '2ª Aula', '3ª Aula', '4ª Aula', '5ª Aula',
+  'Interv. Manhã',
+  '6ª Aula', '7ª Aula', '8ª Aula', '9ª Aula',
+  'Almoço',
+  'Interv. Tarde'
+];

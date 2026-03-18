@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Booking } from '../types';
-import { SPACES } from '../constants';
+import { SPACES, LESSONS } from '../constants';
 
 import { supabase } from '../lib/supabase';
 import { useModal } from '../context/ModalContext';
@@ -94,7 +94,7 @@ const MyAppointments: React.FC = () => {
   });
 
   const getFormattedLessons = (lessons: number[]) => {
-    return lessons.map(l => `${l + 1}ª Aula`).join(', ');
+    return lessons.map(l => LESSONS[l] || `${l + 1}ª`).join(', ');
   };
 
   return (

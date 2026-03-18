@@ -545,33 +545,38 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
             {selectedDate && (
               <section className="px-4 lg:p-0">
                 <h2 className="text-slate-900 dark:text-white text-base font-bold mb-3">Selecione as aulas</h2>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                  {allLessons.map((lesson, idx) => {
-                    const occupied = isLessonOccupied(idx);
-                    const isSelected = selectedLessons.includes(idx);
-                    return (
-                      <button
-                        key={idx}
-                        disabled={occupied}
-                        onClick={() => toggleLesson(idx)}
-                        className={`relative flex h-12 items-center justify-center rounded-lg border text-sm font-medium transition-all ${occupied ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed' :
-                          isSelected ? 'border-primary bg-primary/10 text-primary font-bold shadow-sm' :
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                    {LESSONS.map((lessonLabel, idx) => {
+                      const occupied = isLessonOccupied(idx);
+                      const isSelected = selectedLessons.includes(idx);
+                      const maintenance = isLessonMaintenance(idx);
+                      
+                      return (
+                        <button
+                          key={idx}
+                          disabled={occupied && !isSelected}
+                          onClick={() => toggleLesson(idx)}
+                          className={`relative flex flex-col h-14 items-center justify-center rounded-xl border transition-all ${
+                            occupied && !isSelected ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed opacity-60' :
+                            isSelected ? 'border-primary bg-primary/10 text-primary font-bold shadow-sm scale-95' :
+                            maintenance ? 'border-orange-400 bg-orange-50 text-orange-600' :
                             'bg-white dark:bg-[#1a2634] border-gray-200 dark:border-gray-700 text-slate-700 dark:text-gray-300 hover:border-primary/50'
                           }`}
-                      >
-                        {lesson}
-                        {isSelected && (
-                          <div className="absolute -top-1.5 -right-1.5 bg-primary text-white rounded-full p-0.5 shadow-sm">
-                            <span className="material-symbols-outlined text-[10px] block font-bold">check</span>
-                          </div>
-                        )}
-                        {occupied && (
-                          <span className="material-symbols-outlined absolute inset-0 flex items-center justify-center text-gray-300 opacity-50 text-xl">lock</span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                        >
+                          <span className="text-xs font-black">{idx + 1}</span>
+                          <span className="text-[10px] opacity-80 uppercase leading-none truncate w-full px-1">{lessonLabel.replace(' Aula', '')}</span>
+                          {isSelected && (
+                            <div className="absolute -top-1.5 -right-1.5 bg-primary text-white rounded-full p-0.5 shadow-sm">
+                              <span className="material-symbols-outlined text-[10px] block font-bold">check</span>
+                            </div>
+                          )}
+                          {occupied && !isSelected && (
+                             <span className="material-symbols-outlined absolute inset-0 flex items-center justify-center text-gray-300 opacity-50 text-xl">lock</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 <div className="flex gap-4 mt-3 px-1 text-[10px] text-gray-500">
                   <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full border bg-white dark:bg-slate-800" /> Livre</div>
                   <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-primary" /> Selecionado</div>
