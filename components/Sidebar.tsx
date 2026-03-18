@@ -1,11 +1,44 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 const Sidebar: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const [unreadCount, setUnreadCount] = React.useState(0);
 
     const isActive = (path: string) => location.pathname === path;
+
+    React.useEffect(() => {
+        fetchUnreadCount();
+
+        // Subscribe to changes
+        const channel = supabase
+            .channel('notifications-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
+                fetchUnreadCount();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, []);
+
+    const fetchUnreadCount = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { count, error } = await supabase
+            .from('notifications')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+            .eq('read', false);
+
+        if (!error && count !== null) {
+            setUnreadCount(count);
+        }
+    };
     const isFavorites = location.search.includes('favorites');
 
     const menuItems = [
@@ -40,6 +73,11 @@ const Sidebar: React.FC = () => {
                                 {item.icon}
                             </span>
                             <span className="font-medium text-sm">{item.label}</span>
+                            {item.icon === 'person' && unreadCount > 0 && (
+                                <span className="ml-auto flex size-5 items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full">
+                                    {unreadCount}
+                                </span>
+                            )}
                         </button>
                     );
                 })}

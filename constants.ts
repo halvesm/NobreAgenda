@@ -136,7 +136,8 @@ export const COURSES = [
   'Administração',
   'Contabilidade',
   'Enfermagem',
-  'Informática'
+  'Informática',
+  'Outros'
 ];
 
 export const LESSONS = Array.from({ length: 9 }, (_, i) => `${i + 1}ª Aula`);

@@ -1,12 +1,43 @@
-
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 const BottomNav: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [unreadCount, setUnreadCount] = React.useState(0);
 
   const isActive = (path: string) => location.pathname === path;
+
+  React.useEffect(() => {
+    fetchUnreadCount();
+
+    const channel = supabase
+      .channel('bottom-nav-notif')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
+        fetchUnreadCount();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const fetchUnreadCount = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('read', false);
+
+    if (!error && count !== null) {
+      setUnreadCount(count);
+    }
+  };
 
   return (
     <nav className="fixed bottom-0 w-full bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 pb-safe pt-2 px-2 z-50">
@@ -36,6 +67,11 @@ const BottomNav: React.FC = () => {
                 <span className={`material-symbols-outlined text-[24px] ${active ? 'font-filled' : ''}`}>
                   {item.icon}
                 </span>
+                {item.icon === 'person' && unreadCount > 0 && (
+                   <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full border-2 border-white dark:border-slate-900">
+                     {unreadCount}
+                   </span>
+                )}
               </div>
               <span className={`text-[10px] font-bold transition-all duration-300 ${active ? 'opacity-100 translate-y-0' : 'opacity-70 group-hover:opacity-100'}`}>
                 {item.label}

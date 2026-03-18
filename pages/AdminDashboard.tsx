@@ -54,13 +54,14 @@ const AdminDashboard: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeTab, setActiveTab] = useState<'users' | 'spaces' | 'bookings'>('bookings');
+    const [activeTab, setActiveTab] = useState<'users' | 'spaces' | 'bookings' | 'today' | 'notifications'>('bookings');
     const [spacesStatus, setSpacesStatus] = useState<Record<string, { is_unavailable: boolean; reason: string; unavailable_from?: string | null; unavailable_lessons?: number[] | null }>>({});
     const [editingSpaceId, setEditingSpaceId] = useState<string | null>(null);
     const [editingReason, setEditingReason] = useState('');
     const [editingFrom, setEditingFrom] = useState('');
     const [editingLessons, setEditingLessons] = useState<number[]>([]);
     const [allBookings, setAllBookings] = useState<any[]>([]);
+    const [notifications, setNotifications] = useState<any[]>([]);
 
     useEffect(() => {
         // Restricted access for Núcleo Gestor
@@ -68,7 +69,8 @@ const AdminDashboard: React.FC = () => {
 
         if (activeTab === 'users') fetchUsers();
         if (activeTab === 'spaces') fetchSpacesStatus();
-        if (activeTab === 'bookings') fetchAllBookings();
+        if (activeTab === 'bookings' || activeTab === 'today') fetchAllBookings();
+        if (activeTab === 'notifications') fetchNotifications();
     }, [activeTab]);
 
     const fetchAllBookings = async () => {
@@ -101,6 +103,25 @@ const AdminDashboard: React.FC = () => {
 
         if (data) {
             setAllBookings(data);
+        }
+        setLoading(false);
+    };
+
+    const fetchNotifications = async () => {
+        setLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await supabase
+            .from('notifications')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+
+        if (!error && data) {
+            setNotifications(data);
+            // Marcar como lidas ao visualizar a aba
+            await supabase.from('notifications').update({ read: true }).eq('user_id', user.id);
         }
         setLoading(false);
     };
@@ -332,7 +353,19 @@ const AdminDashboard: React.FC = () => {
                     onClick={() => setActiveTab('bookings')}
                     className={`flex-1 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'bookings' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-500'}`}
                 >
-                    Agendamentos
+                    Histórico
+                </button>
+                <button
+                    onClick={() => setActiveTab('today')}
+                    className={`flex-1 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'today' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-500'}`}
+                >
+                    Hoje
+                </button>
+                <button
+                    onClick={() => setActiveTab('notifications')}
+                    className={`flex-1 py-2 rounded-lg font-bold text-sm transition-colors ${activeTab === 'notifications' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-500'}`}
+                >
+                    Avisos
                 </button>
             </div>
 
@@ -598,7 +631,82 @@ const AdminDashboard: React.FC = () => {
 
                         {allBookings.length === 0 ? (
                             <div className="text-center py-10 text-gray-500">Nenhum agendamento encontrado.</div>
+                        ) : activeTab === 'today' ? (
+                    <div className="space-y-4 pb-10">
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                Agendamentos de Hoje ({new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Fortaleza' })})
+                            </h3>
+                        </div>
+
+                        {allBookings.filter((b: any) => {
+                            const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Fortaleza' }); // YYYY-MM-DD
+                            return b.date === today;
+                        }).length === 0 ? (
+                            <div className="text-center py-10 text-gray-500">Nenhum agendamento para hoje.</div>
                         ) : (
+                            <div className="space-y-3">
+                                {allBookings
+                                    .filter((b: any) => {
+                                        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Fortaleza' });
+                                        return b.date === today;
+                                    })
+                                    .map((booking: any) => {
+                                        const space = SPACES.find(s => s.id === booking.space_id);
+                                        return (
+                                            <div key={booking.id} className="p-3 rounded-xl shadow-sm border bg-white dark:bg-slate-800 border-gray-100 dark:border-gray-700">
+                                                <div className="flex gap-3 items-center">
+                                                    <div className="size-10 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 flex items-center justify-center shrink-0">
+                                                        <span className="material-symbols-outlined text-[20px]">{space?.icon || 'event'}</span>
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className="font-bold text-slate-900 dark:text-white text-sm leading-tight truncate">
+                                                            {space?.name || booking.space_name}
+                                                        </h3>
+                                                        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-[11px] text-gray-500">
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="material-symbols-outlined text-[12px]">schedule</span>
+                                                                {[...booking.lessons].sort((a: number, b: number) => a - b).map((l: number) => `${l + 1}ª`).join(', ')}
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="material-symbols-outlined text-[12px]">person</span>
+                                                                {booking.profiles?.name} • {booking.year}º {booking.course}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                            </div>
+                        )}
+                    </div>
+                ) : activeTab === 'notifications' ? (
+                    <div className="space-y-4 pb-10">
+                        {loading ? (
+                            <div className="flex justify-center p-10"><div className="size-8 rounded-full border-2 border-primary border-t-transparent animate-spin" /></div>
+                        ) : notifications.length === 0 ? (
+                            <div className="text-center py-10 text-gray-500">Nenhum aviso recebido.</div>
+                        ) : (
+                            <div className="space-y-3">
+                                {notifications.map(notif => (
+                                    <div key={notif.id} className={`p-4 rounded-xl border transition-all ${notif.read ? 'bg-white dark:bg-slate-800 border-gray-100 dark:border-gray-700' : 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/30'}`}>
+                                        <div className="flex gap-3">
+                                            <div className={`size-10 rounded-full flex items-center justify-center shrink-0 ${notif.read ? 'bg-gray-100 text-gray-400' : 'bg-primary text-white'}`}>
+                                                <span className="material-symbols-outlined text-lg">notifications</span>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-bold text-slate-900 dark:text-white text-sm">{notif.title}</h3>
+                                                <p className="text-gray-600 dark:text-gray-400 text-xs mt-1 leading-relaxed">{notif.message}</p>
+                                                <p className="text-gray-400 text-[10px] mt-2">{new Date(notif.created_at).toLocaleString('pt-BR')}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                ) : (
                             <div className="space-y-3">
                                 {allBookings.map((booking: any) => {
                                     const space = SPACES.find(s => s.id === booking.space_id);

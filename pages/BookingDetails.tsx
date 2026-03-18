@@ -31,6 +31,7 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
   const [selectedLessons, setSelectedLessons] = useState<number[]>([]);
   const [selectedCourse, setSelectedCourse] = useState('');
   const [selectedYear, setSelectedYear] = useState('');
+  const [customEventName, setCustomEventName] = useState('');
   const [loading, setLoading] = useState(false);
   const [existingBookings, setExistingBookings] = useState<Booking[]>([]);
   const [existingUserId, setExistingUserId] = useState<string | null>(null);
@@ -61,6 +62,13 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
       setSelectedLessons(data.lessons);
       setSelectedCourse(data.course);
       setSelectedYear(data.year);
+
+      // Se o curso não estiver na lista padrão, assume que é Outros e o valor é o nome customizado
+      if (data.course && !COURSES.filter(c => c !== 'Outros').includes(data.course)) {
+        setSelectedCourse('Outros');
+        setCustomEventName(data.course);
+      }
+
       setExistingUserId(data.user_id); // Save original owner
     }
   };
@@ -213,10 +221,13 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
   };
 
   const handleConfirm = async () => {
-    if (!selectedDate || selectedLessons.length === 0 || !selectedCourse) {
+    const isCustom = selectedCourse === 'Outros';
+    const finalCourse = isCustom ? customEventName : selectedCourse;
+
+    if (!selectedDate || selectedLessons.length === 0 || !selectedCourse || (isCustom && !customEventName.trim())) {
       showModal({
         title: 'Dados Incompletos',
-        message: 'Por favor, selecione a data, as aulas e o curso.',
+        message: 'Por favor, selecione a data, as aulas e o curso/nome do evento.',
         type: 'info'
       });
       return;
@@ -281,8 +292,8 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
         space_name: space.name,
         date: formattedDate,
         lessons: selectedLessons,
-        course: selectedCourse,
-        year: selectedYear,
+        course: finalCourse,
+        year: isCustom ? '' : selectedYear,
         status: 'Confirmado'
       };
 
@@ -310,6 +321,51 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
           .single();
 
         if (error) throw error;
+
+        // ✅ ENVIAR NOTIFICAÇÃO PARA O REGENTE
+        try {
+          // 1. Buscar perfis que são regentes deste ambiente
+          const { data: managers } = await supabase
+            .from('profiles')
+            .select('id')
+            .or(`role.eq.Regente,role.eq.PCA`);
+
+          if (managers) {
+            // Filtrar localmente por simplificação de query complexa com arrays
+            const relevantManagers = managers.filter((m: any) => {
+              // Note: profiles need to be fetched with assigned_space_ids
+              return true; // We'll refine this by fetching profiles with their assigned spaces correctly
+            });
+            
+            // Re-fetch with specific filter if possible, or just fetch all and filter
+            const { data: allRegentes } = await supabase
+              .from('profiles')
+              .select('id, assigned_space_ids, assigned_space_id')
+              .in('role', ['Regente', 'PCA']);
+
+            if (allRegentes) {
+              const targetManagers = allRegentes.filter(m => 
+                (m.assigned_space_ids && m.assigned_space_ids.includes(space.id)) || 
+                (m.assigned_space_id === space.id)
+              );
+
+              if (targetManagers.length > 0) {
+                const notifications = targetManagers.map(m => ({
+                  user_id: m.id,
+                  title: 'Novo Agendamento',
+                  message: `${user.user_metadata?.full_name || 'Alguém'} reservou o(a) ${space.name} para o dia ${new Date(formattedDate + 'T12:00:00').toLocaleDateString('pt-BR')}.`,
+                  booking_id: data.id
+                }));
+
+                await supabase.from('notifications').insert(notifications);
+              }
+            }
+          }
+        } catch (notifError) {
+          console.error('Erro ao enviar notificações:', notifError);
+          // Não trava o fluxo principal se a notificação falhar
+        }
+
         showModal({
           title: 'Sucesso',
           message: '✅ Agendamento realizado com sucesso!\n\nSeu agendamento foi confirmado.',
@@ -548,21 +604,36 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-slate-900 dark:text-white text-base font-bold mb-3 block">Ano / Série</label>
-                  <div className="flex bg-gray-100 dark:bg-[#1a2634] p-1 rounded-xl">
-                    {['1', '2', '3'].map(year => (
-                      <button
-                        key={year}
-                        onClick={() => setSelectedYear(year)}
-                        className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${selectedYear === year ? 'bg-white dark:bg-gray-700 text-primary shadow-sm' : 'text-gray-500 dark:text-gray-400'
-                          }`}
-                      >
-                        {year}º Ano
-                      </button>
-                    ))}
+                {selectedCourse === 'Outros' && (
+                  <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                    <label className="text-slate-900 dark:text-white text-base font-bold mb-2 block">Nome da Ação / Evento</label>
+                    <input
+                      type="text"
+                      value={customEventName}
+                      onChange={(e) => setCustomEventName(e.target.value)}
+                      placeholder="Ex: Reunião de Pais, Manutenção..."
+                      className="w-full h-12 px-4 rounded-xl bg-white dark:bg-[#1a2634] border border-gray-200 dark:border-gray-700 dark:text-white focus:ring-2 focus:ring-primary outline-none shadow-sm text-sm font-medium"
+                    />
                   </div>
-                </div>
+                )}
+
+                {selectedCourse !== 'Outros' && (
+                  <div>
+                    <label className="text-slate-900 dark:text-white text-base font-bold mb-3 block">Ano / Série</label>
+                    <div className="flex bg-gray-100 dark:bg-[#1a2634] p-1 rounded-xl">
+                      {['1', '2', '3'].map(year => (
+                        <button
+                          key={year}
+                          onClick={() => setSelectedYear(year)}
+                          className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${selectedYear === year ? 'bg-white dark:bg-gray-700 text-primary shadow-sm' : 'text-gray-500 dark:text-gray-400'
+                            }`}
+                        >
+                          {year}º Ano
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Desktop Confirmation Block */}
                 <div className="hidden lg:block pt-6 border-t border-gray-100 dark:border-gray-700 mt-6">
@@ -579,7 +650,7 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
                   </div>
                   <button
                     onClick={handleConfirm}
-                    disabled={loading || !selectedDate || selectedLessons.length === 0 || !selectedCourse}
+                    disabled={loading || !selectedDate || selectedLessons.length === 0 || !selectedCourse || (selectedCourse === 'Outros' && !customEventName.trim())}
                     className="w-full bg-primary hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold h-12 rounded-xl shadow-lg shadow-primary/25 active:scale-[0.98] flex items-center justify-center gap-2"
                   >
                     {loading ? 'Processando...' : (editId ? 'Atualizar' : 'Confirmar')} <span className="material-symbols-outlined text-lg">check_circle</span>
@@ -602,7 +673,7 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
         </div>
         <button
           onClick={handleConfirm}
-          disabled={loading || !selectedDate || selectedLessons.length === 0 || !selectedCourse}
+          disabled={loading || !selectedDate || selectedLessons.length === 0 || !selectedCourse || (selectedCourse === 'Outros' && !customEventName.trim())}
           className="w-full bg-primary hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold h-12 rounded-xl shadow-lg shadow-primary/25 active:scale-[0.98] flex items-center justify-center gap-2"
         >
           {loading ? 'Processando...' : (editId ? 'Atualizar Agendamento' : 'Confirmar Agendamento')} <span className="material-symbols-outlined text-lg">check_circle</span>
