@@ -73,6 +73,34 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
     }
   };
 
+  const handleDeepLink = async () => {
+    const notifId = query.get('notif');
+    if (!notifId) return;
+
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('id', notifId)
+      .single();
+
+    if (data) {
+      const [y, m, d] = data.date.split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      setSelectedDate(dateObj);
+      setCurrentDate(dateObj);
+      setSelectedLessons(data.lessons);
+      
+      // Auto-scroll to lessons if mobile
+      setTimeout(() => {
+        window.scrollTo({ top: 400, behavior: 'smooth' });
+      }, 500);
+    }
+  };
+
+  useEffect(() => {
+    handleDeepLink();
+  }, [query.get('notif')]);
+
   useEffect(() => {
     if (!space) {
       navigate('/');
