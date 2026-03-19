@@ -84,9 +84,11 @@ serve(async (req) => {
         await webpush.sendNotification(pushSubscription, pushPayload);
         console.log(`Successfully sent push to endpoint: ${sub.endpoint}`);
       } catch (err: any) {
-        console.error(`Failed to send to ${sub.endpoint}:`, err);
-        // If the subscription is expired/invalid (410), we could optionally delete it here
-        if (err.statusCode === 410 || err.statusCode === 404) {
+        const statusCode = err.statusCode ?? err.status ?? 'unknown';
+        console.error(`Failed to send to ${sub.endpoint} | Status: ${statusCode} | Body: ${JSON.stringify(err.body ?? err.message)}`);
+        // Apaga assinaturas expiradas/inválidas (410, 404) ou tokens inválidos (400)
+        if ([400, 404, 410].includes(statusCode)) {
+           console.log(`Removing invalid subscription id: ${sub.id} (status ${statusCode})`);
            await supabaseClient.from('web_push_subscriptions').delete().eq('id', sub.id);
         }
       }
