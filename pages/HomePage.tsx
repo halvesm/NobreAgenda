@@ -281,7 +281,7 @@ const HomePage: React.FC<Props> = ({ user }) => {
                     {renderFavoriteButton(space.id)}
                   </div>
                   <div className="p-3">
-                    <h5 className="text-slate-900 dark:text-white font-bold text-sm truncate">{space.name}</h5>
+                    <h5 className="text-slate-900 dark:text-white font-bold text-sm leading-tight">{space.name}</h5>
                     <div className="absolute top-2 left-2 z-10">
                       <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${space.status === 'Livre' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                         }`}>
@@ -318,13 +318,13 @@ const HomePage: React.FC<Props> = ({ user }) => {
                     <span className="material-symbols-outlined">{space.icon}</span>
                   </div>
                   <div className="flex-1 min-w-0 pr-8">
-                    <h4 className="text-slate-900 dark:text-white font-bold text-base truncate">{space.name}</h4>
+                    <h4 className="text-slate-900 dark:text-white font-bold text-base leading-tight">{space.name}</h4>
                     <p className="text-slate-500 dark:text-slate-400 text-xs flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span> Capacidade: {space.capacity}
                     </p>
                   </div>
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                    <div onClick={e => e.stopPropagation()} className={`opacity-0 group-hover:opacity-100 transition-opacity ${isCurrentlyUnavailable(spacesStatus[space.id]) ? 'hidden' : ''}`}>
+                    <div onClick={e => e.stopPropagation()} className={`${isCurrentlyUnavailable(spacesStatus[space.id]) ? 'hidden' : ''}`}>
                       {renderFavoriteButton(space.id, false)}
                     </div>
                     {!isCurrentlyUnavailable(spacesStatus[space.id]) && <span className="material-symbols-outlined text-slate-400">chevron_right</span>}
