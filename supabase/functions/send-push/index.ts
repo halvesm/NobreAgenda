@@ -1,94 +1,108 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-import webpush from "https://esm.sh/web-push"
+import webpush from "npm:web-push@3.6.7";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
-const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY')!
-const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY')!
-const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT')! // Geralmente 'mailto:seu@email.com'
-
-webpush.setVapidDetails(
-  VAPID_SUBJECT,
-  VAPID_PUBLIC_KEY,
-  VAPID_PRIVATE_KEY
-)
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
   try {
-    const payload = await req.json()
-    const { record } = payload // A partir de um Database Webhook
+    const payload = await req.json();
+    console.log("Webhook payload received:", payload);
+    
+    // The payload.record contains the actual inserted row from `notifications`
+    const notif = payload.record;
+    if (!notif) throw new Error("No record found in payload");
 
-    const { user_id, title, message } = record
+    const userId = notif.user_id;
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
+    // Supabase admin client to read subscriptions bypassing RLS
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
-    // Buscar inscrições do usuário
-    const { data: subscriptions } = await supabase
+    // Fetch subscriptions for this user
+    const { data: subs, error } = await supabaseClient
       .from('web_push_subscriptions')
       .select('*')
-      .eq('user_id', user_id)
+      .eq('user_id', userId);
 
-    if (!subscriptions || subscriptions.length === 0) {
-      return new Response(JSON.stringify({ message: 'No subscriptions found' }), { status: 200 })
+    if (error) {
+      console.error("Error fetching subscriptions:", error);
+      throw error;
     }
 
-    // Buscar informações do agendamento se existir booking_id
-    let targetUrl = '/my-appointments'
-    if (record.booking_id) {
-      const { data: booking } = await supabase
-        .from('bookings')
-        .select('space_id')
-        .eq('id', record.booking_id)
-        .single()
-      
-      if (booking) {
-        targetUrl = `/booking/${booking.space_id}?notif=${record.booking_id}`
-      }
+    if (!subs || subs.length === 0) {
+      console.log(`No active push subscriptions found for user ${userId}`);
+      return new Response(JSON.stringify({ success: true, message: "No subscriptions" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
+
+    // Configure VAPID Keys
+    const vapidPublic = Deno.env.get('VAPID_PUBLIC_KEY');
+    const vapidPrivate = Deno.env.get('VAPID_PRIVATE_KEY');
+
+    if (!vapidPublic || !vapidPrivate) {
+      console.error("Missing VAPID keys in environment variables");
+      throw new Error("Missing VAPID keys");
+    }
+
+    webpush.setVapidDetails(
+      'mailto:suporte@nobreagenda.com', // Remetente fictício ou real
+      vapidPublic,
+      vapidPrivate
+    );
 
     const pushPayload = JSON.stringify({
-      title,
-      body: message,
+      title: notif.title,
+      body: notif.message,
       icon: '/pwa-icon.png',
       badge: '/pwa-icon.png',
-      vibrate: [200, 100, 200, 100, 200],
-      tag: record.booking_id || 'new-booking',
-      renotify: true,
       data: {
-        url: targetUrl
+        url: notif.booking_id ? `/booking/${notif.booking_id}` : '/'
       }
-    })
+    });
 
-    const results = await Promise.all(
-      subscriptions.map(async (sub) => {
-        try {
-          const pushSubscription = {
-            endpoint: sub.endpoint,
-            keys: {
-              p256dh: sub.p256dh,
-              auth: sub.auth
-            }
+    const sendPromises = subs.map(async (sub) => {
+      try {
+        const pushSubscription = {
+          endpoint: sub.endpoint,
+          keys: {
+            p256dh: sub.p256dh,
+            auth: sub.auth
           }
-          await webpush.sendNotification(pushSubscription, pushPayload)
-          return { endpoint: sub.endpoint, success: true }
-        } catch (err) {
-          console.error(`Error sending to ${sub.endpoint}:`, err)
-          // Se falhar porque a inscrição expirou, deletar do banco
-          if (err.statusCode === 410 || err.statusCode === 404) {
-             await supabase.from('web_push_subscriptions').delete().eq('endpoint', sub.endpoint)
-          }
-          return { endpoint: sub.endpoint, success: false, error: err.message }
+        };
+
+        await webpush.sendNotification(pushSubscription, pushPayload);
+        console.log(`Successfully sent push to endpoint: ${sub.endpoint}`);
+      } catch (err: any) {
+        console.error(`Failed to send to ${sub.endpoint}:`, err);
+        // If the subscription is expired/invalid (410), we could optionally delete it here
+        if (err.statusCode === 410 || err.statusCode === 404) {
+           await supabaseClient.from('web_push_subscriptions').delete().eq('id', sub.id);
         }
-      })
-    )
+      }
+    });
 
-    return new Response(JSON.stringify({ results }), { 
-      headers: { "Content-Type": "application/json" } 
-    })
+    await Promise.all(sendPromises);
 
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 })
+    return new Response(JSON.stringify({ success: true, deliveries: subs.length }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (err: any) {
+    console.error("Critical function error:", err);
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
-})
+});

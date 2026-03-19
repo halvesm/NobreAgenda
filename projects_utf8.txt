@@ -1,0 +1,7 @@
+﻿
+  
+   LINKED | ORG ID               | REFERENCE ID         | NAME             | REGION                    | CREATED AT (UTC)    
+  --------|----------------------|----------------------|------------------|---------------------------|---------------------
+          | wichbtjiixtofqrkhqjx | yfmtmvcfevxopuaqwukh | NobreAgenda      | West US (Oregon)          | 2025-12-31 17:17:51 
+          | oswbornxwxkwdlvyjvfv | bfbkqfyqgxeebzhpbkyn | BibliotecaOnline | South America (S├úo Paulo) | 2026-01-07 21:49:51 
+
