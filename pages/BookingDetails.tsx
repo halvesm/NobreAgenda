@@ -226,17 +226,15 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
     if (isOccupied) return;
 
     if (isAuditorum && LESSONS[index] === 'Almoço') {
-      const canBookLunch = user.role === 'Administrador' ||
-        user.role === 'Núcleo Gestor' ||
+      const canBookLunch = 
         user.role === 'Coordenador(a)' ||
         user.role === 'Coordenador' ||
-        user.role === 'PCA' ||
         (user.role === 'Regente' && (user.assigned_space_ids?.includes('8') || user.assigned_space_id === '8'));
 
       if (!canBookLunch) {
         showModal({
           title: 'Acesso Negado',
-          message: 'Apenas Regentes do ambiente, Coordenadores ou PCAs podem agendar o horário de almoço no Auditório.',
+          message: 'Este horário só pode ser agendado pelo regente do ambiente ou coordenação.',
           type: 'error'
         });
         return;
