@@ -134,7 +134,7 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
             </div>
             <div className="mt-8 text-center">
               <p className="text-[10px] text-slate-400">
-                NobreAgenda 1.5.3 • Desenvolvido por: <a href="https://instagram.com/h_alves" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">@h_alves</a>
+                NobreAgenda 3.1 • Desenvolvido por: <a href="https://instagram.com/h_alves" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">@h_alves</a>
               </p>
             </div>
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Nobre Agenda</h2>

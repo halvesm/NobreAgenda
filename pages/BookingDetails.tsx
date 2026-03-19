@@ -352,8 +352,8 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
               if (targetManagers.length > 0) {
                 const notifications = targetManagers.map(m => ({
                   user_id: m.id,
-                  title: 'Novo Agendamento',
-                  message: `${user.user_metadata?.full_name || 'Alguém'} reservou o(a) ${space.name} para o dia ${new Date(formattedDate + 'T12:00:00').toLocaleDateString('pt-BR')}.`,
+                  title: '📅 Novo Agendamento',
+                  message: `${user.user_metadata?.full_name || 'Um professor'} agendou o(a) ${space.name} para o dia ${new Date(formattedDate + 'T12:00:00').toLocaleDateString('pt-BR')}.`,
                   booking_id: data.id
                 }));
 

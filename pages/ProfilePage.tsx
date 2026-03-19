@@ -26,6 +26,78 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
   const [message, setMessage] = useState('');
 
   const [uploading, setUploading] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifLoading, setNotifLoading] = useState(true);
+
+  React.useEffect(() => {
+    fetchNotifications();
+  }, [user.id]);
+
+  const fetchNotifications = async () => {
+    try {
+      setNotifLoading(true);
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      setNotifications(data || []);
+    } catch (err) {
+      console.error('Erro ao buscar notificações:', err);
+    } finally {
+      setNotifLoading(false);
+    }
+  };
+
+  const handleNotificationClick = async (notif: any) => {
+    // Marcar como lida
+    if (!notif.read) {
+      await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notif.id);
+      
+      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n));
+    }
+
+    // Navegar para o agendamento se existir
+    if (notif.booking_id) {
+        // Precisamos do space_id para montar a URL /booking/:id
+        const { data: booking } = await supabase
+            .from('bookings')
+            .select('space_id')
+            .eq('id', notif.booking_id)
+            .single();
+        
+        if (booking) {
+            navigate(`/booking/${booking.space_id}?notif=${notif.booking_id}`);
+        } else {
+            showModal({
+                title: 'Aviso',
+                message: 'Este agendamento pode ter sido cancelado ou removido.',
+                type: 'info'
+            });
+        }
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+
+      if (error) throw error;
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (err) {
+      console.error('Erro ao marcar todas como lidas:', err);
+    }
+  };
 
 
   const toggleDarkMode = async () => {
@@ -222,6 +294,58 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
                 {user.email} (Não editável)
               </div>
             </div>
+          </div>
+        </section>
+
+        <section className="mt-8 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Notificações Recentes</h3>
+            {notifications.length > 0 && notifications.some(n => !n.read) && (
+              <button 
+                onClick={markAllAsRead}
+                className="text-[10px] font-bold text-primary hover:underline"
+              >
+                Marcar todas como lidas
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            {notifLoading ? (
+              <div className="flex justify-center py-4">
+                <div className="size-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-xl text-center">
+                <span className="material-symbols-outlined text-slate-300 dark:text-slate-700 text-4xl mb-2">notifications_off</span>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Nenhuma notificação por enquanto.</p>
+              </div>
+            ) : (
+              notifications.map((notif) => (
+                <div 
+                  key={notif.id}
+                  onClick={() => handleNotificationClick(notif)}
+                  className={`p-4 rounded-xl border transition-all cursor-pointer relative ${
+                    notif.read 
+                      ? 'bg-white dark:bg-slate-900/40 border-slate-100 dark:border-slate-800 opacity-75' 
+                      : 'bg-primary/5 dark:bg-primary/10 border-primary/20 shadow-sm'
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-1">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white">{notif.title}</span>
+                    <span className="text-[10px] text-slate-400">
+                      {new Date(notif.created_at).toLocaleDateString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                    {notif.message}
+                  </p>
+                  {!notif.read && (
+                    <div className="absolute top-4 right-[-4px] size-2 bg-primary rounded-full shadow-sm shadow-primary/50" />
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </section>
 

@@ -34,13 +34,30 @@ serve(async (req) => {
       return new Response(JSON.stringify({ message: 'No subscriptions found' }), { status: 200 })
     }
 
+    // Buscar informações do agendamento se existir booking_id
+    let targetUrl = '/my-appointments'
+    if (record.booking_id) {
+      const { data: booking } = await supabase
+        .from('bookings')
+        .select('space_id')
+        .eq('id', record.booking_id)
+        .single()
+      
+      if (booking) {
+        targetUrl = `/booking/${booking.space_id}?notif=${record.booking_id}`
+      }
+    }
+
     const pushPayload = JSON.stringify({
       title,
       body: message,
-      icon: '/pwa-192x192.png',
-      badge: '/badge.png',
+      icon: '/pwa-icon.png',
+      badge: '/pwa-icon.png',
+      vibrate: [200, 100, 200, 100, 200],
+      tag: record.booking_id || 'new-booking',
+      renotify: true,
       data: {
-        url: '/admin' // Ou link para o agendamento
+        url: targetUrl
       }
     })
 

@@ -51,7 +51,7 @@ const Sidebar: React.FC = () => {
     return (
         <aside className="hidden md:flex flex-col w-64 h-screen fixed left-0 top-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-50">
             <div className="p-6 flex items-center gap-3">
-                <img src="//custom-logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+                <img src="/custom-logo.png" alt="Logo" className="w-8 h-8 object-contain" />
                 <h1 className="text-xl font-bold bg-gradient-to-r from-[#FA8112] to-[#249E94] bg-clip-text text-transparent">
                     NobreAgenda
                 </h1>
@@ -86,7 +86,7 @@ const Sidebar: React.FC = () => {
             <div className="p-4 border-t border-slate-200 dark:border-slate-800">
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl">
                     <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
-                        NobreAgenda 1.5.3<br />
+                        NobreAgenda 3.1<br />
                         <span className="opacity-70 mt-1 block">Desenvolvido por: <a href="https://instagram.com/h_alves" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">@h_alves</a></span>
                     </p>
                 </div>
