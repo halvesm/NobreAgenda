@@ -130,7 +130,7 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
           {/* Mobile Header (Only visible on small screens) */}
           <div className="lg:hidden text-center mb-8">
             <div className="flex justify-center mb-4">
-              <img src="/custom-logo.png" alt="Logo" className="w-16 h-16 object-contain" />
+              <img src="/pwa-icon.png" alt="Logo" className="w-16 h-16 object-contain" />
             </div>
             <div className="mt-8 text-center">
               <p className="text-[10px] text-slate-400">

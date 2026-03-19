@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
         react(),
         VitePWA({
           registerType: 'autoUpdate',
-          includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'pwa-icon.png'],
+          includeAssets: ['pwa-icon.png'],
           manifest: {
             name: 'Nobre Agenda',
             short_name: 'NobreAgenda',
@@ -22,17 +22,17 @@ export default defineConfig(({ mode }) => {
             theme_color: '#FE7F2D',
             icons: [
               {
-                src: 'pwa-icon.png',
+                src: '/pwa-icon.png',
                 sizes: '192x192',
                 type: 'image/png'
               },
               {
-                src: 'pwa-icon.png',
+                src: '/pwa-icon.png',
                 sizes: '512x512',
                 type: 'image/png'
               },
               {
-                src: 'pwa-icon.png',
+                src: '/pwa-icon.png',
                 sizes: '512x512',
                 type: 'image/png',
                 purpose: 'any maskable'

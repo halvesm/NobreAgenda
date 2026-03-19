@@ -51,7 +51,7 @@ const Sidebar: React.FC = () => {
     return (
         <aside className="hidden md:flex flex-col w-64 h-screen fixed left-0 top-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-50">
             <div className="p-6 flex items-center gap-3">
-                <img src="/custom-logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+                <img src="//custom-logo.png" alt="Logo" className="w-8 h-8 object-contain" />
                 <h1 className="text-xl font-bold bg-gradient-to-r from-[#FA8112] to-[#249E94] bg-clip-text text-transparent">
                     NobreAgenda
                 </h1>
