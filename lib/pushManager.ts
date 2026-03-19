@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-const VAPID_PUBLIC_KEY = 'BI5Tb9Iq7_zZU2NFpctUhDy6cZMfvsfo5OAb4LiR1KWMtXrxdgfrK1QJ4OQIei99FTFjUwkhHqg6it-bW480Sis';
+const VAPID_PUBLIC_KEY = 'BJmM168hm-M-SNqG-nYzUHPYK3jjpEUctn0tgor4IJ-fRkOFCO0OmeKLm7OpmTnSGXEiP57Tvr0QfOL3wyuzPoE';
 
 export async function subscribeToPush() {
   try {
@@ -9,13 +9,16 @@ export async function subscribeToPush() {
     // Verificar se já existe inscrição
     let subscription = await registration.pushManager.getSubscription();
     
-    if (!subscription) {
-      // Pedir permissão e inscrever
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-      });
+    // Força a renovação da inscrição para garantir que a nova VAPID key seja usada
+    if (subscription) {
+      await subscription.unsubscribe();
     }
+    
+    // Pedir permissão e inscrever com a NOVA chave
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
 
     // Salvar no Supabase
     const { data: { user } } = await supabase.auth.getUser();
