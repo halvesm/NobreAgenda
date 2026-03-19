@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User } from '../types';
@@ -52,15 +52,15 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
     try {
       setPushLoading(true);
       if (pushActive) {
-        // Desinscrever não é estritamente necessário agora, mas podemos avisar
-        showModal({ title: 'Aviso', message: 'Para desativar, use as configurações do seu navegador.', type: 'info' });
+        // Desinscrever nÃ£o Ã© estritamente necessÃ¡rio agora, mas podemos avisar
+        showModal({ title: 'Aviso', message: 'Para desativar, use as configuraÃ§Ãµes do seu navegador.', type: 'info' });
       } else {
         await subscribeToPush();
         setPushActive(true);
-        showModal({ title: 'Sucesso', message: 'Notificações popup ativadas!', type: 'success' });
+        showModal({ title: 'Sucesso', message: 'NotificaÃ§Ãµes popup ativadas!', type: 'success' });
       }
     } catch (err) {
-      showModal({ title: 'Erro', message: 'Não foi possível ativar as notificações.', type: 'error' });
+      showModal({ title: 'Erro', message: 'NÃ£o foi possÃ­vel ativar as notificaÃ§Ãµes.', type: 'error' });
     } finally {
       setPushLoading(false);
     }
@@ -83,7 +83,7 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
       if (error) throw error;
       setNotifications(data || []);
     } catch (err) {
-      console.error('Erro ao buscar notificações:', err);
+      console.error('Erro ao buscar notificaÃ§Ãµes:', err);
     } finally {
       setNotifLoading(false);
     }
@@ -144,7 +144,7 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
     user.role?.toLowerCase().includes('pca');
 
   const deleteNotification = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation(); // Prevenir navegação ao deletar
+    e.stopPropagation(); // Prevenir navegaÃ§Ã£o ao deletar
     if (!isAuthorizedToDelete) return;
     
     try {
@@ -156,10 +156,10 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
       if (error) throw error;
       setNotifications(prev => prev.filter(n => n.id !== id));
     } catch (err: any) {
-      console.error('Erro ao deletar notificação:', err);
+      console.error('Erro ao deletar notificaÃ§Ã£o:', err);
       showModal({
         title: 'Erro ao Excluir',
-        message: 'Não foi possível excluir a notificação. Verifique se você executou o código SQL no Supabase.',
+        message: 'NÃ£o foi possÃ­vel excluir a notificaÃ§Ã£o. Verifique se vocÃª executou o cÃ³digo SQL no Supabase.',
         type: 'error'
       });
     }
@@ -167,7 +167,7 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
 
   const clearAllNotifications = async () => {
     if (!isAuthorizedToDelete) return;
-    if (!window.confirm('Deseja realmente excluir todas as notificações lidas?')) return;
+    if (!window.confirm('Deseja realmente excluir todas as notificaÃ§Ãµes lidas?')) return;
     
     try {
       const { error } = await supabase
@@ -179,7 +179,7 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
       if (error) throw error;
       setNotifications(prev => prev.filter(n => !n.read));
     } catch (err) {
-      console.error('Erro ao limpar notificações:', err);
+      console.error('Erro ao limpar notificaÃ§Ãµes:', err);
     }
   };
 
@@ -205,7 +205,7 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
   const deleteSelected = async () => {
     if (!isAuthorizedToDelete) return;
     if (selectedNotifs.length === 0) return;
-    if (!window.confirm(`Deseja excluir as ${selectedNotifs.length} notificações selecionadas?`)) return;
+    if (!window.confirm(`Deseja excluir as ${selectedNotifs.length} notificaÃ§Ãµes selecionadas?`)) return;
 
     try {
       const { error } = await supabase
@@ -221,7 +221,7 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
       console.error('Erro ao excluir selecionadas:', err);
       showModal({
         title: 'Erro ao Excluir',
-        message: 'Ocorreu um erro ao tentar excluir as notificações selecionadas.',
+        message: 'Ocorreu um erro ao tentar excluir as notificaÃ§Ãµes selecionadas.',
         type: 'error'
       });
     }
@@ -239,7 +239,7 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
       document.documentElement.classList.remove('dark');
     }
 
-    // Salvar no localStorage para persistência imediata/offline
+    // Salvar no localStorage para persistÃªncia imediata/offline
     localStorage.setItem('theme', newTheme);
 
     // Salvar no perfil (Supabase)
@@ -260,7 +260,7 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
       setUploading(true);
 
       if (!event.target.files || event.target.files.length === 0) {
-        throw new Error('Você deve selecionar uma imagem para fazer upload.');
+        throw new Error('VocÃª deve selecionar uma imagem para fazer upload.');
       }
 
       const file = event.target.files[0];
@@ -370,7 +370,7 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
             {!isEditing ? (
               <>
                 <h2 className="text-xl font-bold">{user.name}</h2>
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">{user.department} • {user.role}</p>
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">{user.department} â€¢ {user.role}</p>
                 <button
                   onClick={() => setIsEditing(true)}
                   className="mt-3 px-4 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full text-xs font-bold text-primary hover:bg-slate-200"
@@ -379,13 +379,13 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
                 </button>
               </>
             ) : (
-              <div className="mt-2 text-xs text-primary font-bold">Modo de Edição Ativo</div>
+              <div className="mt-2 text-xs text-primary font-bold">Modo de EdiÃ§Ã£o Ativo</div>
             )}
           </div>
         </div>
 
         <section className="space-y-6">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 pb-2">Informações Gerais</h3>
+          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 pb-2">InformaÃ§Ãµes Gerais</h3>
 
           <div className="space-y-4">
             <div className="flex flex-col gap-1">
@@ -399,201 +399,3 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
               />
             </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-bold text-slate-500 ml-1">Área de Atuação</label>
-              {isEditing ? (
-                <select
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  className="w-full h-12 px-4 rounded-xl border border-primary bg-white dark:bg-slate-800 focus:ring-2 focus:ring-primary outline-none"
-                >
-                  {DEPARTMENTS.map(dept => <option key={dept} value={dept}>{dept}</option>)}
-                </select>
-              ) : (
-                <div className="w-full h-12 px-4 rounded-xl border border-transparent bg-slate-50 dark:bg-slate-900/50 text-slate-500 flex items-center">
-                  {department}
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-bold text-slate-500 ml-1">E-mail (Login)</label>
-              <div className="w-full h-12 px-4 rounded-xl border border-transparent bg-slate-50 dark:bg-slate-900/50 text-slate-400 flex items-center text-sm italic">
-                {user.email} (Não editável)
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="mt-8 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Notificações Recentes</h3>
-            <div className="flex gap-2">
-              {isAuthorizedToDelete && notifications.some(n => n.read) && !selectionMode && (
-                <button 
-                  onClick={clearAllNotifications}
-                  className="text-[10px] font-bold px-3 py-1 rounded-full border border-red-200 text-red-500 bg-red-50 dark:bg-red-900/20 dark:border-red-900/30 hover:bg-red-100 transition-all"
-                >
-                  Limpar lidas
-                </button>
-              )}
-              {isAuthorizedToDelete && notifications.length > 0 && (
-                <button 
-                  onClick={toggleSelectionMode}
-                  className={`text-[10px] font-bold px-3 py-1 rounded-full border transition-all ${
-                    selectionMode ? 'bg-slate-200 border-slate-300 text-slate-600' : 'bg-primary/10 border-primary/20 text-primary'
-                  }`}
-                >
-                  {selectionMode ? 'Cancelar' : 'Selecionar'}
-                </button>
-              )}
-            </div>
-          </div>
-
-          {selectionMode && notifications.length > 0 && (
-             <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-2 duration-300">
-                <button onClick={selectAll} className="text-[11px] font-bold text-slate-600 dark:text-slate-400 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm">
-                        {selectedNotifs.length === notifications.length ? 'check_box' : 'check_box_outline_blank'}
-                    </span>
-                    Tudo ({selectedNotifs.length})
-                </button>
-                <button 
-                    disabled={selectedNotifs.length === 0}
-                    onClick={deleteSelected}
-                    className={`text-[11px] font-bold flex items-center gap-2 ${selectedNotifs.length === 0 ? 'text-slate-300 cursor-not-allowed' : 'text-red-500 hover:scale-105 active:scale-95 transition-transform'}`}
-                >
-                    <span className="material-symbols-outlined text-sm">delete_sweep</span>
-                    Excluir selecionadas
-                </button>
-             </div>
-          )}
-
-          <div className="space-y-3">
-            {notifLoading ? (
-              <div className="flex justify-center py-4">
-                <div className="size-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-              </div>
-            ) : notifications.length === 0 ? (
-              <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-xl text-center">
-                <span className="material-symbols-outlined text-slate-300 dark:text-slate-700 text-4xl mb-2">notifications_off</span>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Nenhuma notificação por enquanto.</p>
-              </div>
-            ) : (
-              notifications.map((notif) => (
-                <div 
-                  key={notif.id}
-                  onClick={() => selectionMode ? toggleSelect(notif.id) : handleNotificationClick(notif)}
-                  className={`p-4 rounded-xl border transition-all cursor-pointer relative flex gap-4 ${
-                    notif.read 
-                      ? 'bg-white dark:bg-slate-900/40 border-slate-100 dark:border-slate-800 opacity-75' 
-                      : 'bg-primary/5 dark:bg-primary/10 border-primary/20 shadow-sm'
-                  } ${selectedNotifs.includes(notif.id) ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-slate-900' : ''}`}
-                >
-                  {selectionMode && (
-                    <div className="flex items-center pt-1">
-                      <span className={`material-symbols-outlined text-lg ${selectedNotifs.includes(notif.id) ? 'text-primary' : 'text-slate-300'}`}>
-                        {selectedNotifs.includes(notif.id) ? 'check_box' : 'check_box_outline_blank'}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white pr-6 truncate">{notif.title}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-slate-400 whitespace-nowrap">
-                          {new Date(notif.created_at).toLocaleDateString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                        {!selectionMode && isAuthorizedToDelete && (
-                          <button 
-                            onClick={(e) => deleteNotification(e, notif.id)}
-                            className="text-slate-300 hover:text-red-500 transition-colors"
-                            title="Excluir"
-                          >
-                            <span className="material-symbols-outlined text-sm">delete</span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed pr-4 line-clamp-2">
-                      {notif.message}
-                    </p>
-                    {!notif.read && !selectedNotifs.includes(notif.id) && (
-                      <div className="absolute top-4 right-[-4px] size-2 bg-primary rounded-full shadow-sm shadow-primary/50" />
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-
-        <section className="mt-8 space-y-4">
-          <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
-            <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-primary">notifications_active</span>
-              <div className="flex flex-col">
-                <span className="font-medium text-sm">Notificações Popup</span>
-                <span className="text-[10px] text-slate-400">Receber alertas no celular (estilo WhatsApp)</span>
-              </div>
-            </div>
-            <button
-              onClick={handleTogglePush}
-              disabled={pushLoading}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                pushActive 
-                  ? 'bg-green-100 text-green-600 border border-green-200' 
-                  : 'bg-primary text-white shadow-md shadow-primary/20 active:scale-95'
-              }`}
-            >
-              {pushLoading ? '...' : (pushActive ? 'Ativo' : 'Ativar')}
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
-            <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-primary">dark_mode</span>
-              <span className="font-medium text-sm">Modo Escuro</span>
-            </div>
-            <button
-              onClick={toggleDarkMode}
-              className={`w-11 h-6 rounded-full transition-colors relative ${isDarkMode ? 'bg-primary' : 'bg-slate-300'}`}
-            >
-              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isDarkMode ? 'left-6' : 'left-1'}`} />
-            </button>
-          </div>
-        </section>
-
-        <div className="mt-10 space-y-3">
-          {isEditing ? (
-            <div className="flex gap-3">
-              <button
-                onClick={() => { setIsEditing(false); setName(user.name); setDepartment(user.department); }}
-                className="flex-1 h-12 bg-slate-200 text-slate-700 font-bold rounded-xl active:scale-[0.98]"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSave}
-                className="flex-1 h-12 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 active:scale-[0.98]"
-              >
-                Salvar
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={onLogout}
-              className="w-full h-12 bg-white dark:bg-slate-900 text-red-600 font-bold rounded-xl border border-red-100 dark:border-red-900/30 hover:bg-red-50 flex items-center justify-center gap-2 transition-colors"
-            >
-              <span className="material-symbols-outlined">logout</span> Sair da Conta
-            </button>
-          )}
-        </div>
-      </main>
-
-
-    </div>
-  );
-};
-
-export default ProfilePage;
