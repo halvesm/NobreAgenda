@@ -225,19 +225,37 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
 
     if (isOccupied) return;
 
-    if (isAuditorum && LESSONS[index] === 'Almoço') {
-      const canBookLunch = 
-        user.role === 'Coordenador(a)' ||
-        user.role === 'Coordenador' ||
-        (user.role === 'Regente' && (user.assigned_space_ids?.includes('8') || user.assigned_space_id === '8'));
+    if (LESSONS[index] === 'Almoço') {
+      const isAuditorium = space?.id === '8';
+      const isLibrary = space?.id === '9';
 
-      if (!canBookLunch) {
-        showModal({
-          title: 'Acesso Negado',
-          message: 'Este horário só pode ser agendado pelo regente do ambiente ou coordenação.',
-          type: 'error'
-        });
-        return;
+      if (isAuditorium) {
+        const canBookLunch = 
+          user.role === 'Coordenador(a)' ||
+          user.role === 'Coordenador' ||
+          (user.role === 'Regente' && (user.assigned_space_ids?.includes('8') || user.assigned_space_id === '8'));
+
+        if (!canBookLunch) {
+          showModal({
+            title: 'Acesso Negado',
+            message: 'Este horário só pode ser agendado pelo regente do ambiente ou coordenação.',
+            type: 'error'
+          });
+          return;
+        }
+      }
+
+      if (isLibrary) {
+        const canBookLunch = (user.role === 'Regente' && (user.assigned_space_ids?.includes('9') || user.assigned_space_id === '9'));
+
+        if (!canBookLunch) {
+          showModal({
+            title: 'Acesso Negado',
+            message: 'Este horário só pode ser agendado pelo regente do ambiente.',
+            type: 'error'
+          });
+          return;
+        }
       }
     }
 
