@@ -14,6 +14,10 @@ export default defineConfig(({ mode }) => {
         react(),
         VitePWA({
           registerType: 'autoUpdate',
+          strategies: 'generateSW',
+          workbox: {
+            importScripts: ['/sw-push.js']
+          },
           includeAssets: ['pwa-icon.png'],
           manifest: {
             name: 'Nobre Agenda',

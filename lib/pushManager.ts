@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-const VAPID_PUBLIC_KEY = 'BJ_...SUA_CHAVE_PUBLICA_AQUI...'; // O usuário precisará gerar ou eu posso sugerir uma forma
+const VAPID_PUBLIC_KEY = 'BI5Tb9Iq7_zZU2NFpctUhDy6cZMfvsfo5OAb4LiR1KWMtXrxdgfrK1QJ4OQIei99FTFjUwkhHqg6it-bW480Sis';
 
 export async function subscribeToPush() {
   try {

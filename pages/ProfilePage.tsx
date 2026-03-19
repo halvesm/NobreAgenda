@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { useModal } from '../context/ModalContext';
 import { translateError } from '../lib/i18n';
 import { DEPARTMENTS } from '../constants';
+import { subscribeToPush } from '../lib/pushManager';
 
 interface Props {
   user: User;
@@ -28,6 +29,42 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
   const [uploading, setUploading] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [notifLoading, setNotifLoading] = useState(true);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedNotifs, setSelectedNotifs] = useState<string[]>([]);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushActive, setPushActive] = useState(false);
+
+  React.useEffect(() => {
+    checkPushStatus();
+  }, []);
+
+  const checkPushStatus = async () => {
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration) {
+        const subscription = await registration.pushManager.getSubscription();
+        setPushActive(!!subscription);
+      }
+    }
+  };
+
+  const handleTogglePush = async () => {
+    try {
+      setPushLoading(true);
+      if (pushActive) {
+        // Desinscrever não é estritamente necessário agora, mas podemos avisar
+        showModal({ title: 'Aviso', message: 'Para desativar, use as configurações do seu navegador.', type: 'info' });
+      } else {
+        await subscribeToPush();
+        setPushActive(true);
+        showModal({ title: 'Sucesso', message: 'Notificações popup ativadas!', type: 'success' });
+      }
+    } catch (err) {
+      showModal({ title: 'Erro', message: 'Não foi possível ativar as notificações.', type: 'error' });
+    } finally {
+      setPushLoading(false);
+    }
+  };
 
   React.useEffect(() => {
     fetchNotifications();
@@ -94,8 +131,99 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
 
       if (error) throw error;
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erro ao marcar todas como lidas:', err);
+    }
+  };
+
+  const isAuthorizedToDelete = 
+    user.role?.toLowerCase().includes('regente') || 
+    user.role?.toLowerCase().includes('admin') || 
+    user.role?.toLowerCase().includes('gestor') || 
+    user.role?.toLowerCase().includes('coord') || 
+    user.role?.toLowerCase().includes('pca');
+
+  const deleteNotification = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); // Prevenir navegação ao deletar
+    if (!isAuthorizedToDelete) return;
+    
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    } catch (err: any) {
+      console.error('Erro ao deletar notificação:', err);
+      showModal({
+        title: 'Erro ao Excluir',
+        message: 'Não foi possível excluir a notificação. Verifique se você executou o código SQL no Supabase.',
+        type: 'error'
+      });
+    }
+  };
+
+  const clearAllNotifications = async () => {
+    if (!isAuthorizedToDelete) return;
+    if (!window.confirm('Deseja realmente excluir todas as notificações lidas?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('read', true);
+
+      if (error) throw error;
+      setNotifications(prev => prev.filter(n => !n.read));
+    } catch (err) {
+      console.error('Erro ao limpar notificações:', err);
+    }
+  };
+
+  const toggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    setSelectedNotifs([]);
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedNotifs(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const selectAll = () => {
+    if (selectedNotifs.length === notifications.length) {
+      setSelectedNotifs([]);
+    } else {
+      setSelectedNotifs(notifications.map(n => n.id));
+    }
+  };
+
+  const deleteSelected = async () => {
+    if (!isAuthorizedToDelete) return;
+    if (selectedNotifs.length === 0) return;
+    if (!window.confirm(`Deseja excluir as ${selectedNotifs.length} notificações selecionadas?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .in('id', selectedNotifs);
+
+      if (error) throw error;
+      setNotifications(prev => prev.filter(n => !selectedNotifs.includes(n.id)));
+      setSelectedNotifs([]);
+      setSelectionMode(false);
+    } catch (err: any) {
+      console.error('Erro ao excluir selecionadas:', err);
+      showModal({
+        title: 'Erro ao Excluir',
+        message: 'Ocorreu um erro ao tentar excluir as notificações selecionadas.',
+        type: 'error'
+      });
     }
   };
 
@@ -300,15 +428,46 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
         <section className="mt-8 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Notificações Recentes</h3>
-            {notifications.length > 0 && notifications.some(n => !n.read) && (
-              <button 
-                onClick={markAllAsRead}
-                className="text-[10px] font-bold text-primary hover:underline"
-              >
-                Marcar todas como lidas
-              </button>
-            )}
+            <div className="flex gap-2">
+              {isAuthorizedToDelete && notifications.some(n => n.read) && !selectionMode && (
+                <button 
+                  onClick={clearAllNotifications}
+                  className="text-[10px] font-bold px-3 py-1 rounded-full border border-red-200 text-red-500 bg-red-50 dark:bg-red-900/20 dark:border-red-900/30 hover:bg-red-100 transition-all"
+                >
+                  Limpar lidas
+                </button>
+              )}
+              {isAuthorizedToDelete && notifications.length > 0 && (
+                <button 
+                  onClick={toggleSelectionMode}
+                  className={`text-[10px] font-bold px-3 py-1 rounded-full border transition-all ${
+                    selectionMode ? 'bg-slate-200 border-slate-300 text-slate-600' : 'bg-primary/10 border-primary/20 text-primary'
+                  }`}
+                >
+                  {selectionMode ? 'Cancelar' : 'Selecionar'}
+                </button>
+              )}
+            </div>
           </div>
+
+          {selectionMode && notifications.length > 0 && (
+             <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-2 duration-300">
+                <button onClick={selectAll} className="text-[11px] font-bold text-slate-600 dark:text-slate-400 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm">
+                        {selectedNotifs.length === notifications.length ? 'check_box' : 'check_box_outline_blank'}
+                    </span>
+                    Tudo ({selectedNotifs.length})
+                </button>
+                <button 
+                    disabled={selectedNotifs.length === 0}
+                    onClick={deleteSelected}
+                    className={`text-[11px] font-bold flex items-center gap-2 ${selectedNotifs.length === 0 ? 'text-slate-300 cursor-not-allowed' : 'text-red-500 hover:scale-105 active:scale-95 transition-transform'}`}
+                >
+                    <span className="material-symbols-outlined text-sm">delete_sweep</span>
+                    Excluir selecionadas
+                </button>
+             </div>
+          )}
 
           <div className="space-y-3">
             {notifLoading ? (
@@ -324,25 +483,45 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
               notifications.map((notif) => (
                 <div 
                   key={notif.id}
-                  onClick={() => handleNotificationClick(notif)}
-                  className={`p-4 rounded-xl border transition-all cursor-pointer relative ${
+                  onClick={() => selectionMode ? toggleSelect(notif.id) : handleNotificationClick(notif)}
+                  className={`p-4 rounded-xl border transition-all cursor-pointer relative flex gap-4 ${
                     notif.read 
                       ? 'bg-white dark:bg-slate-900/40 border-slate-100 dark:border-slate-800 opacity-75' 
                       : 'bg-primary/5 dark:bg-primary/10 border-primary/20 shadow-sm'
-                  }`}
+                  } ${selectedNotifs.includes(notif.id) ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-slate-900' : ''}`}
                 >
-                  <div className="flex justify-between items-start mb-1">
-                    <span className="text-xs font-bold text-slate-900 dark:text-white">{notif.title}</span>
-                    <span className="text-[10px] text-slate-400">
-                      {new Date(notif.created_at).toLocaleDateString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                    {notif.message}
-                  </p>
-                  {!notif.read && (
-                    <div className="absolute top-4 right-[-4px] size-2 bg-primary rounded-full shadow-sm shadow-primary/50" />
+                  {selectionMode && (
+                    <div className="flex items-center pt-1">
+                      <span className={`material-symbols-outlined text-lg ${selectedNotifs.includes(notif.id) ? 'text-primary' : 'text-slate-300'}`}>
+                        {selectedNotifs.includes(notif.id) ? 'check_box' : 'check_box_outline_blank'}
+                      </span>
+                    </div>
                   )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white pr-6 truncate">{notif.title}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-slate-400 whitespace-nowrap">
+                          {new Date(notif.created_at).toLocaleDateString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        {!selectionMode && isAuthorizedToDelete && (
+                          <button 
+                            onClick={(e) => deleteNotification(e, notif.id)}
+                            className="text-slate-300 hover:text-red-500 transition-colors"
+                            title="Excluir"
+                          >
+                            <span className="material-symbols-outlined text-sm">delete</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed pr-4 line-clamp-2">
+                      {notif.message}
+                    </p>
+                    {!notif.read && !selectedNotifs.includes(notif.id) && (
+                      <div className="absolute top-4 right-[-4px] size-2 bg-primary rounded-full shadow-sm shadow-primary/50" />
+                    )}
+                  </div>
                 </div>
               ))
             )}
@@ -350,7 +529,27 @@ const ProfilePage: React.FC<Props> = ({ user, onLogout, onProfileUpdate }) => {
         </section>
 
         <section className="mt-8 space-y-4">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 pb-2">Preferências de App</h3>
+          <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-primary">notifications_active</span>
+              <div className="flex flex-col">
+                <span className="font-medium text-sm">Notificações Popup</span>
+                <span className="text-[10px] text-slate-400">Receber alertas no celular (estilo WhatsApp)</span>
+              </div>
+            </div>
+            <button
+              onClick={handleTogglePush}
+              disabled={pushLoading}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                pushActive 
+                  ? 'bg-green-100 text-green-600 border border-green-200' 
+                  : 'bg-primary text-white shadow-md shadow-primary/20 active:scale-95'
+              }`}
+            >
+              {pushLoading ? '...' : (pushActive ? 'Ativo' : 'Ativar')}
+            </button>
+          </div>
+
           <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
             <div className="flex items-center gap-3">
               <span className="material-symbols-outlined text-primary">dark_mode</span>

@@ -126,8 +126,31 @@ const AdminDashboard: React.FC = () => {
         setLoading(false);
     };
 
+    const clearReadNotifications = async () => {
+        setLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        try {
+            const { error } = await supabase
+                .from('notifications')
+                .delete()
+                .eq('user_id', user.id)
+                .eq('read', true);
+
+            if (error) throw error;
+            setNotifications(prev => prev.filter(n => !n.read));
+            showModal({ title: 'Sucesso', message: 'Notificações lidas excluídas.', type: 'success' });
+        } catch (error: any) {
+            showModal({ title: 'Erro', message: translateError(error.message), type: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleClearPastBookings = async () => {
-        const today = new Date().toISOString().split('T')[0];
+        // Usar data local para evitar problemas de fuso horário (Brasil é UTC-3)
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Fortaleza' }); // Retorna YYYY-MM-DD
         const pastCount = allBookings.filter((b: any) => b.date < today).length;
 
         if (pastCount === 0) {
@@ -618,7 +641,7 @@ const AdminDashboard: React.FC = () => {
                                     }
                                 </p>
                             </div>
-                            {(currentUserRole === 'Administrador' || currentUserRole === 'Regente' || currentUserRole === 'PCA' || currentUserRole === 'Núcleo Gestor') && (
+                            {(currentUserRole === 'Administrador' || currentUserRole === 'Regente' || currentUserRole === 'PCA') && (
                                 <button
                                     onClick={handleClearPastBookings}
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-orange-200 text-orange-600 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-900/20 text-xs font-bold transition-colors"
@@ -683,6 +706,17 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 ) : activeTab === 'notifications' ? (
                     <div className="space-y-4 pb-10">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">Central de Avisos</h3>
+                            {notifications.some(n => n.read) && (
+                                <button
+                                    onClick={clearReadNotifications}
+                                    className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold transition-all"
+                                >
+                                    Limpar lidos
+                                </button>
+                            )}
+                        </div>
                         {loading ? (
                             <div className="flex justify-center p-10"><div className="size-8 rounded-full border-2 border-primary border-t-transparent animate-spin" /></div>
                         ) : notifications.length === 0 ? (
