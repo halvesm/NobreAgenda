@@ -36,6 +36,13 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
   const [existingBookings, setExistingBookings] = useState<Booking[]>([]);
   const [existingUserId, setExistingUserId] = useState<string | null>(null);
   const [maintenanceStatus, setMaintenanceStatus] = useState<any>(null);
+  const [repeatMode, setRepeatMode] = useState<'none' | 'month' | '2months' | 'year'>('none');
+
+  // Detectar se user é Regente deste espaço
+  const isRegenteOfSpace = space ? (
+    user.role === 'Regente' && 
+    (user.assigned_space_ids?.includes(space.id) || user.assigned_space_id === space.id)
+  ) : false;
 
   // Carregar dados da edição
   useEffect(() => {
@@ -264,6 +271,42 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
     );
   };
 
+  // Gerar datas recorrentes (mesmo dia da semana)
+  const generateRecurringDates = (startDate: Date, mode: 'month' | '2months' | 'year'): Date[] => {
+    const dates: Date[] = [];
+    const endDate = new Date(startDate);
+
+    if (mode === 'month') {
+      endDate.setMonth(endDate.getMonth() + 1);
+    } else if (mode === '2months') {
+      endDate.setMonth(endDate.getMonth() + 2);
+    } else {
+      endDate.setFullYear(startDate.getFullYear(), 11, 31);
+    }
+
+    let current = new Date(startDate);
+    current.setDate(current.getDate() + 7); // Próxima semana (a original já será incluída separadamente)
+
+    while (current <= endDate) {
+      dates.push(new Date(current));
+      current.setDate(current.getDate() + 7);
+    }
+
+    return dates;
+  };
+
+  // Preview das datas recorrentes
+  const getRecurringPreview = () => {
+    if (!selectedDate || repeatMode === 'none') return [];
+    return generateRecurringDates(selectedDate, repeatMode);
+  };
+
+  const recurringDates = getRecurringPreview();
+
+  const getDayOfWeekName = (date: Date) => {
+    return date.toLocaleDateString('pt-BR', { weekday: 'long' });
+  };
+
   const handleConfirm = async () => {
     const isCustom = selectedCourse === 'Outros';
     const finalCourse = isCustom ? customEventName : selectedCourse;
@@ -293,9 +336,91 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
 
       const formattedDate = formatDateLocal(selectedDate);
 
+      // ========== AGENDAMENTO EM LOTE (Regente) ==========
+      if (repeatMode !== 'none' && isRegenteOfSpace && !editId) {
+        const allDates = [selectedDate, ...generateRecurringDates(selectedDate, repeatMode)];
+        const firstDateStr = formatDateLocal(allDates[0]);
+        const lastDateStr = formatDateLocal(allDates[allDates.length - 1]);
+
+        // Buscar todos os bookings do período de uma vez
+        const { data: periodBookings, error: periodError } = await supabase
+          .from('bookings')
+          .select('date, lessons')
+          .eq('space_id', space.id)
+          .eq('status', 'Confirmado')
+          .gte('date', firstDateStr)
+          .lte('date', lastDateStr);
+
+        if (periodError) throw periodError;
+
+        // Filtrar datas sem conflito
+        const validDates: Date[] = [];
+        const conflictDates: Date[] = [];
+
+        allDates.forEach(date => {
+          const dateStr = formatDateLocal(date);
+          const dayBookings = periodBookings?.filter((b: any) => b.date === dateStr) || [];
+          const occupiedLessons: number[] = dayBookings.flatMap((b: any) => b.lessons || []);
+          const hasConflict = selectedLessons.some(l => occupiedLessons.includes(l));
+
+          if (hasConflict) {
+            conflictDates.push(date);
+          } else {
+            validDates.push(date);
+          }
+        });
+
+        if (validDates.length === 0) {
+          showModal({
+            title: '❌ Sem datas disponíveis',
+            message: 'Todas as datas do período selecionado já possuem conflitos de horário.',
+            type: 'error'
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Batch insert
+        const bookingsToInsert = validDates.map(date => ({
+          user_id: user.id,
+          space_id: space.id,
+          space_name: space.name,
+          date: formatDateLocal(date),
+          lessons: selectedLessons,
+          course: finalCourse,
+          year: isCustom ? '' : selectedYear,
+          status: 'Confirmado'
+        }));
+
+        const { error: batchError } = await supabase
+          .from('bookings')
+          .insert(bookingsToInsert);
+
+        if (batchError) throw batchError;
+
+        // Montar mensagem de resumo
+        let message = `✅ ${validDates.length} agendamento(s) criado(s) com sucesso!`;
+        if (conflictDates.length > 0) {
+          const conflictList = conflictDates
+            .map(d => d.toLocaleDateString('pt-BR'))
+            .join(', ');
+          message += `\n\n⚠️ ${conflictDates.length} data(s) ignorada(s) por conflito:\n${conflictList}`;
+        }
+
+        showModal({
+          title: 'Agendamento em Lote',
+          message,
+          type: 'success'
+        });
+
+        navigate('/my-appointments');
+        return;
+      }
+
+      // ========== AGENDAMENTO ÚNICO (fluxo original) ==========
+
       // ✅ VERIFICAR CONFLITOS ANTES DE SALVAR
       if (!editId) {
-        // Buscar agendamentos existentes para este espaço e data
         const { data: existingBookings, error: checkError } = await supabase
           .from('bookings')
           .select('lessons')
@@ -305,7 +430,6 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
 
         if (checkError) throw checkError;
 
-        // Verificar se há conflito de horários
         if (existingBookings && existingBookings.length > 0) {
           const occupiedLessons: number[] = [];
           existingBookings.forEach((booking: any) => {
@@ -314,7 +438,6 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
             }
           });
 
-          // Verificar se alguma aula selecionada já está ocupada
           const conflicts = selectedLessons.filter(lesson => occupiedLessons.includes(lesson));
 
           if (conflicts.length > 0) {
@@ -331,7 +454,7 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
       }
 
       const bookingData = {
-        user_id: existingUserId || user.id, // Keep original owner if editing
+        user_id: existingUserId || user.id,
         space_id: space.id,
         space_name: space.name,
         date: formattedDate,
@@ -342,7 +465,6 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
       };
 
       if (editId) {
-        // UPDATE existing
         const { data, error } = await supabase
           .from('bookings')
           .update(bookingData)
@@ -357,7 +479,6 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
           type: 'success'
         });
       } else {
-        // INSERT new
         const { data, error } = await supabase
           .from('bookings')
           .insert([bookingData])
@@ -368,20 +489,16 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
 
         // ✅ ENVIAR NOTIFICAÇÃO PARA O REGENTE
         try {
-          // 1. Buscar perfis que são regentes deste ambiente
           const { data: managers } = await supabase
             .from('profiles')
             .select('id')
             .or(`role.eq.Regente,role.eq.PCA`);
 
           if (managers) {
-            // Filtrar localmente por simplificação de query complexa com arrays
             const relevantManagers = managers.filter((m: any) => {
-              // Note: profiles need to be fetched with assigned_space_ids
-              return true; // We'll refine this by fetching profiles with their assigned spaces correctly
+              return true;
             });
             
-            // Re-fetch with specific filter if possible, or just fetch all and filter
             const { data: allRegentes } = await supabase
               .from('profiles')
               .select('id, assigned_space_ids, assigned_space_id')
@@ -407,7 +524,6 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
           }
         } catch (notifError) {
           console.error('Erro ao enviar notificações:', notifError);
-          // Não trava o fluxo principal se a notificação falhar
         }
 
         showModal({
@@ -417,7 +533,7 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
         });
       }
 
-      if (onBook && !editId) onBook({ id: 'temp', ...bookingData } as any); // Mock for prop callback if needed
+      if (onBook && !editId) onBook({ id: 'temp', ...bookingData } as any);
       navigate('/my-appointments');
     } catch (error: any) {
       showModal({
@@ -683,6 +799,74 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
                   </div>
                 )}
 
+                {/* ========== AGENDAMENTO EM LOTE (Regente) ========== */}
+                {isRegenteOfSpace && !editId && selectedDate && selectedLessons.length > 0 && (
+                  <div className="pt-4 border-t border-gray-100 dark:border-gray-700 mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="material-symbols-outlined text-primary text-lg">repeat</span>
+                      <label className="text-slate-900 dark:text-white text-base font-bold">Repetir Agendamento</label>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                      Replicar este agendamento para o mesmo dia da semana ({selectedDate ? getDayOfWeekName(selectedDate) : ''}).
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { value: 'none' as const, label: 'Não repetir', icon: 'event' },
+                        { value: 'month' as const, label: 'Mês inteiro', icon: 'date_range' },
+                        { value: '2months' as const, label: '2 meses', icon: 'calendar_month' },
+                        { value: 'year' as const, label: 'Ano inteiro', icon: 'calendar_today' },
+                      ].map(option => (
+                        <button
+                          key={option.value}
+                          onClick={() => setRepeatMode(option.value)}
+                          className={`flex items-center gap-2 px-3 py-3 rounded-xl border text-sm font-medium transition-all ${
+                            repeatMode === option.value
+                              ? 'border-primary bg-primary/10 text-primary shadow-sm ring-1 ring-primary/30'
+                              : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-primary/40 bg-white dark:bg-[#1a2634]'
+                          }`}
+                        >
+                          <span className={`material-symbols-outlined text-base ${
+                            repeatMode === option.value ? 'text-primary' : 'text-gray-400'
+                          }`}>{option.icon}</span>
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Preview de datas */}
+                    {repeatMode !== 'none' && recurringDates.length > 0 && (
+                      <div className="mt-3 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/40">
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <span className="material-symbols-outlined text-primary text-sm">info</span>
+                          <span className="text-xs font-bold text-primary">
+                            {recurringDates.length + 1} agendamento(s) no total
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {/* Data original */}
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/15 text-primary text-[10px] font-bold">
+                            <span className="material-symbols-outlined text-[10px]">push_pin</span>
+                            {selectedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                          </span>
+                          {/* Datas recorrentes */}
+                          {recurringDates.map((date, i) => (
+                            <span
+                              key={i}
+                              className="px-2 py-1 rounded-md bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 text-[10px] font-medium border border-gray-100 dark:border-gray-700"
+                            >
+                              {date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-2">
+                          Toda <strong>{getDayOfWeekName(selectedDate)}</strong> até{' '}
+                          {recurringDates[recurringDates.length - 1]?.toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Desktop Confirmation Block */}
                 <div className="hidden lg:block pt-6 border-t border-gray-100 dark:border-gray-700 mt-6">
                   <div className="flex items-center justify-between mb-4 text-sm">
@@ -701,7 +885,11 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
                     disabled={loading || !selectedDate || selectedLessons.length === 0 || !selectedCourse || (selectedCourse === 'Outros' && !customEventName.trim())}
                     className="w-full bg-primary hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold h-12 rounded-xl shadow-lg shadow-primary/25 active:scale-[0.98] flex items-center justify-center gap-2"
                   >
-                    {loading ? 'Processando...' : (editId ? 'Atualizar' : 'Confirmar')} <span className="material-symbols-outlined text-lg">check_circle</span>
+                    {loading ? 'Processando...' : (
+                      editId ? 'Atualizar' : 
+                      repeatMode !== 'none' ? `Confirmar ${recurringDates.length + 1} Agendamentos` : 
+                      'Confirmar'
+                    )} <span className="material-symbols-outlined text-lg">{repeatMode !== 'none' ? 'repeat' : 'check_circle'}</span>
                   </button>
                 </div>
               </div>
@@ -724,7 +912,11 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
           disabled={loading || !selectedDate || selectedLessons.length === 0 || !selectedCourse || (selectedCourse === 'Outros' && !customEventName.trim())}
           className="w-full bg-primary hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold h-12 rounded-xl shadow-lg shadow-primary/25 active:scale-[0.98] flex items-center justify-center gap-2"
         >
-          {loading ? 'Processando...' : (editId ? 'Atualizar Agendamento' : 'Confirmar Agendamento')} <span className="material-symbols-outlined text-lg">check_circle</span>
+          {loading ? 'Processando...' : (
+            editId ? 'Atualizar Agendamento' : 
+            repeatMode !== 'none' ? `Confirmar ${recurringDates.length + 1} Agendamentos` : 
+            'Confirmar Agendamento'
+          )} <span className="material-symbols-outlined text-lg">{repeatMode !== 'none' ? 'repeat' : 'check_circle'}</span>
         </button>
       </footer>
     </div>
