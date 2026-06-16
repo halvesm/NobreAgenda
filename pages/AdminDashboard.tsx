@@ -795,43 +795,52 @@ const AdminDashboard: React.FC = () => {
                                                     </div>
                                                 </div>
 
-                                                <div className="flex sm:flex-col gap-2 w-full sm:w-auto shrink-0 mt-2 sm:mt-0 pl-13 sm:pl-0">
-                                                    <button
-                                                        onClick={() => navigate(`/booking/${booking.space_id}?editId=${booking.id}`)}
-                                                        className="flex-1 sm:flex-none px-3 py-1.5 border border-blue-200 text-blue-600 hover:bg-blue-50 rounded-lg text-xs font-bold transition-colors whitespace-nowrap flex items-center justify-center gap-1"
-                                                    >
-                                                        Editar
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            showModal({
-                                                                title: 'Confirmar Cancelamento',
-                                                                message: 'Tem certeza que deseja cancelar este agendamento?',
-                                                                type: 'confirm',
-                                                                onConfirm: async () => {
-                                                                    const { error } = await supabase.from('bookings').delete().eq('id', booking.id);
-                                                                    if (!error) {
-                                                                        fetchAllBookings();
-                                                                        showModal({
-                                                                            title: 'Cancelado',
-                                                                            message: 'Agendamento cancelado com sucesso!',
-                                                                            type: 'success'
-                                                                        });
-                                                                    } else {
-                                                                        showModal({
-                                                                            title: 'Erro',
-                                                                            message: translateError(error.message),
-                                                                            type: 'error'
-                                                                        });
+                                                {currentUserProfile && (
+                                                    currentUserProfile.role === 'Administrador' ||
+                                                    (currentUserProfile.role === 'Regente' && (
+                                                        currentUserProfile.assigned_space_id === booking.space_id ||
+                                                        currentUserProfile.assigned_space_ids?.includes(booking.space_id)
+                                                    )) ||
+                                                    booking.user_id === currentUserProfile.id
+                                                ) && (
+                                                    <div className="flex sm:flex-col gap-2 w-full sm:w-auto shrink-0 mt-2 sm:mt-0 pl-13 sm:pl-0">
+                                                        <button
+                                                            onClick={() => navigate(`/booking/${booking.space_id}?editId=${booking.id}`)}
+                                                            className="flex-1 sm:flex-none px-3 py-1.5 border border-blue-200 text-blue-600 hover:bg-blue-50 rounded-lg text-xs font-bold transition-colors whitespace-nowrap flex items-center justify-center gap-1"
+                                                        >
+                                                            Editar
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                showModal({
+                                                                    title: 'Confirmar Cancelamento',
+                                                                    message: 'Tem certeza que deseja cancelar este agendamento?',
+                                                                    type: 'confirm',
+                                                                    onConfirm: async () => {
+                                                                        const { error } = await supabase.from('bookings').delete().eq('id', booking.id);
+                                                                        if (!error) {
+                                                                            fetchAllBookings();
+                                                                            showModal({
+                                                                                title: 'Cancelado',
+                                                                                message: 'Agendamento cancelado com sucesso!',
+                                                                                type: 'success'
+                                                                            });
+                                                                        } else {
+                                                                            showModal({
+                                                                                title: 'Erro',
+                                                                                message: translateError(error.message),
+                                                                                type: 'error'
+                                                                            });
+                                                                        }
                                                                     }
-                                                                }
-                                                            });
-                                                        }}
-                                                        className="flex-1 sm:flex-none px-3 py-1.5 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-bold transition-colors whitespace-nowrap flex items-center justify-center gap-1"
-                                                    >
-                                                        Cancelar
-                                                    </button>
-                                                </div>
+                                                                });
+                                                            }}
+                                                            className="flex-1 sm:flex-none px-3 py-1.5 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-bold transition-colors whitespace-nowrap flex items-center justify-center gap-1"
+                                                        >
+                                                            Cancelar
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     );
