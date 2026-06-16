@@ -58,3 +58,25 @@ USING (
     )
   )
 );
+
+-- 4. Criar política unificada para INSERT
+DROP POLICY IF EXISTS "Users can insert their own bookings" ON public.bookings;
+DROP POLICY IF EXISTS "Enable insert for owners and space managers" ON public.bookings;
+
+CREATE POLICY "Enable insert for owners and space managers"
+ON public.bookings
+FOR INSERT
+WITH CHECK (
+  user_id = auth.uid() OR
+  EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid()
+    AND (
+      role IN ('Administrador', 'Núcleo Gestor', 'Coordenador', 'Coordenador(a)', 'PCA') OR
+      (role = 'Regente' AND (
+        assigned_space_id = bookings.space_id OR 
+        assigned_space_ids @> ARRAY[bookings.space_id]
+      ))
+    )
+  )
+);
