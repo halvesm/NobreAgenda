@@ -627,6 +627,17 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
     );
   };
 
+  const getOccupyingBooking = (lessonIndex: number) => {
+    if (!selectedDate) return null;
+    const dateStr = selectedDate.toISOString().split('T')[0];
+    return existingBookings.find(b =>
+      b.date === dateStr &&
+      b.lessons.includes(lessonIndex) &&
+      b.status !== 'Cancelado' &&
+      b.id !== editId
+    );
+  };
+
   const monthName = currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   const formattedMonthTitle = monthName.charAt(0).toUpperCase() + monthName.slice(1);
 
@@ -699,28 +710,6 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
                     const isSelected = selectedDate?.toDateString() === day.toDateString();
                     const dayLabel = day.getDate();
 
-                    // Prévia de turmas agendadas neste dia
-                    const dayStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
-                    const dayBookings = existingBookings.filter(b => b.date === dayStr && b.status !== 'Cancelado');
-                    const hasBookings = dayBookings.length > 0;
-
-                    // Gerar labels de turma únicos
-                    const turmaLabels: string[] = [];
-                    dayBookings.forEach(b => {
-                      const bk = b as any;
-                      const letter = COURSE_LETTER_MAP[bk.course];
-                      let label: string;
-                      if (letter) {
-                        label = `${bk.year}º ${letter}`;
-                      } else {
-                        // Curso "Outros" - mostrar apenas nome da ação
-                        label = bk.course || '';
-                      }
-                      if (label && !turmaLabels.includes(label)) {
-                        turmaLabels.push(label);
-                      }
-                    });
-
                     return (
                       <button
                         key={day.toISOString()}
@@ -729,31 +718,14 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
                           setSelectedDate(day);
                           setSelectedLessons([]); // Limpar seleção ao mudar dia
                         }}
-                        className={`min-h-[36px] flex flex-col items-center justify-center rounded-lg text-sm transition-all px-0.5 py-1 ${isSelected
+                        className={`size-9 flex items-center justify-center rounded-full text-sm transition-all ${isSelected
                           ? 'bg-primary text-white font-semibold shadow-md'
                           : isSelectable
                             ? 'text-slate-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                             : 'text-gray-300 dark:text-gray-700 cursor-not-allowed'
                           }`}
                       >
-                        <span>{dayLabel}</span>
-                        {hasBookings && (
-                          <div className="flex flex-col items-center gap-0 mt-0.5">
-                            <span className={`material-symbols-outlined leading-none ${isSelected ? 'text-white/80' : 'text-gray-400 dark:text-gray-500'}`} style={{fontSize: '10px'}}>lock</span>
-                            {turmaLabels.slice(0, 2).map((label, i) => (
-                              <span
-                                key={i}
-                                className={`leading-none font-bold truncate max-w-full ${isSelected ? 'text-white/80' : 'text-primary/70 dark:text-blue-400/70'}`}
-                                style={{fontSize: '7px'}}
-                              >
-                                {label}
-                              </span>
-                            ))}
-                            {turmaLabels.length > 2 && (
-                              <span className={`leading-none ${isSelected ? 'text-white/60' : 'text-gray-400'}`} style={{fontSize: '6px'}}>+{turmaLabels.length - 2}</span>
-                            )}
-                          </div>
-                        )}
+                        {dayLabel}
                       </button>
                     );
                   })}
@@ -769,13 +741,24 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
                       const occupied = isLessonOccupied(idx);
                       const isSelected = selectedLessons.includes(idx);
                       const maintenance = isLessonMaintenance(idx);
+                      const booking = occupied ? getOccupyingBooking(idx) : null;
                       
+                      let detailsText = '';
+                      if (occupied && !isSelected) {
+                        if (maintenance) {
+                          detailsText = 'Manutenção';
+                        } else if (booking) {
+                          const letter = COURSE_LETTER_MAP[booking.course];
+                          detailsText = letter ? `${booking.year}º ${letter}` : booking.course;
+                        }
+                      }
+
                       return (
                         <button
                           key={idx}
                           disabled={occupied && !isSelected}
                           onClick={() => toggleLesson(idx)}
-                          className={`relative flex flex-col h-14 items-center justify-center rounded-xl border transition-all ${
+                          className={`relative flex flex-col min-h-[56px] h-auto py-1 items-center justify-center rounded-xl border transition-all ${
                             occupied && !isSelected ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed opacity-60' :
                             isSelected ? 'border-primary bg-primary/10 text-primary font-bold shadow-sm scale-95' :
                             maintenance ? 'border-orange-400 bg-orange-50 text-orange-600' :
@@ -789,7 +772,14 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
                             </div>
                           )}
                           {occupied && !isSelected && (
-                             <span className="material-symbols-outlined absolute inset-0 flex items-center justify-center text-gray-300 opacity-50 text-xl">lock</span>
+                            <>
+                              {detailsText && (
+                                <span className="text-[9px] font-bold text-red-500/80 dark:text-red-400/80 mt-1 leading-none truncate max-w-full px-1">
+                                  {detailsText}
+                                </span>
+                              )}
+                              <span className="material-symbols-outlined absolute top-1 right-1 text-gray-400 opacity-60" style={{ fontSize: '12px' }}>lock</span>
+                            </>
                           )}
                         </button>
                       );
