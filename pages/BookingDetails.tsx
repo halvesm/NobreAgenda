@@ -48,10 +48,9 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
     (user.assigned_space_ids?.includes(space.id) || user.assigned_space_id === space.id)
   ) : false;
 
-  // Permitir agendamento em nome de outro professor ou em lote para Regentes do espaço,
-  // ou para cargos administrativos/coordenação (Administrador, Núcleo Gestor, Coordenador, Coordenador(a), PCA)
-  const canDelegateOrBatch = isRegenteOfSpace || 
-    ['Administrador', 'Núcleo Gestor', 'Coordenador', 'Coordenador(a)', 'PCA'].includes(user.role);
+  // Permitir agendamento em nome de outro professor ou em lote apenas para Regentes do espaço
+  // ou para Administradores
+  const canDelegateOrBatch = isRegenteOfSpace || user.role === 'Administrador';
 
   // Buscar professores cadastrados quando regente ou gestor
   useEffect(() => {
