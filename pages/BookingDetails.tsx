@@ -48,9 +48,14 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
     (user.assigned_space_ids?.includes(space.id) || user.assigned_space_id === space.id)
   ) : false;
 
-  // Buscar professores cadastrados quando regente
+  // Permitir agendamento em nome de outro professor ou em lote para Regentes do espaço,
+  // ou para cargos administrativos/coordenação (Administrador, Núcleo Gestor, Coordenador, Coordenador(a), PCA)
+  const canDelegateOrBatch = isRegenteOfSpace || 
+    ['Administrador', 'Núcleo Gestor', 'Coordenador', 'Coordenador(a)', 'PCA'].includes(user.role);
+
+  // Buscar professores cadastrados quando regente ou gestor
   useEffect(() => {
-    if (isRegenteOfSpace) {
+    if (canDelegateOrBatch) {
       const fetchTeachers = async () => {
         const { data } = await supabase
           .from('profiles')
@@ -62,7 +67,7 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
       };
       fetchTeachers();
     }
-  }, [isRegenteOfSpace]);
+  }, [canDelegateOrBatch]);
 
   // Carregar dados da edição
   useEffect(() => {
@@ -356,8 +361,8 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
 
       const formattedDate = formatDateLocal(selectedDate);
 
-      // ========== AGENDAMENTO EM LOTE (Regente) ==========
-      if (repeatMode !== 'none' && isRegenteOfSpace && !editId) {
+      // ========== AGENDAMENTO EM LOTE (Regente/Gestor) ==========
+      if (repeatMode !== 'none' && canDelegateOrBatch && !editId) {
         const allDates = [selectedDate, ...generateRecurringDates(selectedDate, repeatMode)];
         const firstDateStr = formatDateLocal(allDates[0]);
         const lastDateStr = formatDateLocal(allDates[allDates.length - 1]);
@@ -848,8 +853,8 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
                   </div>
                 )}
 
-                {/* Agendamento em nome de outro professor (Regente) */}
-                {isRegenteOfSpace && !editId && (
+                {/* Agendamento em nome de outro professor (Regente/Gestor) */}
+                {canDelegateOrBatch && !editId && (
                   <div className="pt-3 border-t border-gray-100 dark:border-gray-700 mt-2 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="material-symbols-outlined text-primary text-lg">person_add</span>
@@ -862,7 +867,7 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
                       <select
                         value={delegateUserId}
                         onChange={(e) => setDelegateUserId(e.target.value)}
-                        className="w-full h-12 pl-4 pr-10 rounded-xl bg-white dark:bg-[#1a2634] border border-gray-200 dark:border-gray-700 dark:text-white focus:ring-2 focus:ring-primary appearance-none bg-none outline-none shadow-sm text-sm font-medium cursor-pointer"
+                        className="w-full h-12 pl-4 pr-10 rounded-xl bg-white dark:bg-[#1a2634] border-gray-200 dark:border-gray-700 dark:text-white focus:ring-2 focus:ring-primary appearance-none bg-none outline-none shadow-sm text-sm font-medium cursor-pointer"
                         style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none' }}
                       >
                         <option value="">Minha conta (padrão)</option>
@@ -877,8 +882,8 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
                   </div>
                 )}
 
-                {/* ========== AGENDAMENTO EM LOTE (Regente) ========== */}
-                {isRegenteOfSpace && !editId && selectedDate && selectedLessons.length > 0 && (
+                {/* ========== AGENDAMENTO EM LOTE (Regente/Gestor) ========== */}
+                {canDelegateOrBatch && !editId && selectedDate && selectedLessons.length > 0 && (
                   <div className="pt-4 border-t border-gray-100 dark:border-gray-700 mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
                     <div className="flex items-center gap-2 mb-3">
                       <span className="material-symbols-outlined text-primary text-lg">repeat</span>
