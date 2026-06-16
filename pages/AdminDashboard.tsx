@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useModal } from '../context/ModalContext';
 import { translateError } from '../lib/i18n';
 import { User } from '../types';
-import { SPACES, LESSONS, DEPARTMENTS } from '../constants';
+import { SPACES, LESSONS, DEPARTMENTS, COURSE_LETTER_MAP } from '../constants';
 
 const AdminDashboard: React.FC = () => {
     const { showModal } = useModal();
@@ -693,7 +693,9 @@ const AdminDashboard: React.FC = () => {
                                                             </div>
                                                             <div className="flex items-center gap-1">
                                                                 <span className="material-symbols-outlined text-[12px]">person</span>
-                                                                {booking.profiles?.name} • {booking.year}º {booking.course}
+                                                                {booking.profiles?.name} • {COURSE_LETTER_MAP[booking.course]
+                                                                    ? `${booking.year}º ${COURSE_LETTER_MAP[booking.course]}`
+                                                                    : booking.course}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -784,7 +786,9 @@ const AdminDashboard: React.FC = () => {
                                                                 <span className="truncate">
                                                                     <strong className="text-gray-700 dark:text-gray-300 font-semibold">{booking.profiles?.name || '---'}</strong>
                                                                     <span className="mx-1">•</span>
-                                                                    {booking.year}º {booking.course}
+                                                                    {COURSE_LETTER_MAP[booking.course]
+                                                                        ? `${booking.year}º ${COURSE_LETTER_MAP[booking.course]}`
+                                                                        : booking.course}
                                                                 </span>
                                                             </div>
                                                         </div>

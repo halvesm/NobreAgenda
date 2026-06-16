@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Booking } from '../types';
-import { SPACES, LESSONS } from '../constants';
+import { SPACES, LESSONS, COURSE_LETTER_MAP } from '../constants';
 
 import { supabase } from '../lib/supabase';
 import { useModal } from '../context/ModalContext';
@@ -153,7 +153,9 @@ const MyAppointments: React.FC = () => {
                       <div className="flex flex-col items-start gap-1">
                         <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 dark:bg-slate-900 px-2 py-1 text-[11px] font-bold text-slate-600 dark:text-slate-400">
                           <span className="material-symbols-outlined text-[12px]">groups</span>
-                          Turma {b.year}º Ano {b.course}
+                          {COURSE_LETTER_MAP[b.course]
+                            ? `Turma ${b.year}º ${COURSE_LETTER_MAP[b.course]}`
+                            : b.course}
                         </span>
                         <h3 className="text-base font-bold leading-tight text-slate-900 dark:text-white">{b.spaceName}</h3>
                       </div>

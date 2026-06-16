@@ -140,6 +140,13 @@ export const COURSES = [
   'Outros'
 ];
 
+export const COURSE_LETTER_MAP: Record<string, string> = {
+  'Administração': 'A',
+  'Contabilidade': 'B',
+  'Enfermagem': 'C',
+  'Informática': 'D',
+};
+
 export const LESSONS = [
   '1ª Aula', '2ª Aula',
   'Interv. Manhã',

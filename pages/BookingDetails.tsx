@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { SPACES, COURSES, LESSONS } from '../constants';
+import { SPACES, COURSES, LESSONS, COURSE_LETTER_MAP } from '../constants';
 import { User, Booking } from '../types';
 import { supabase } from '../lib/supabase';
 import { useModal } from '../context/ModalContext';
@@ -38,11 +38,31 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
   const [maintenanceStatus, setMaintenanceStatus] = useState<any>(null);
   const [repeatMode, setRepeatMode] = useState<'none' | 'month' | '2months' | 'year'>('none');
 
+  // Estado para agendamento em nome de outro professor
+  const [delegateUserId, setDelegateUserId] = useState<string>('');
+  const [allTeachers, setAllTeachers] = useState<{id: string; name: string}[]>([]);
+
   // Detectar se user é Regente deste espaço
   const isRegenteOfSpace = space ? (
     user.role === 'Regente' && 
     (user.assigned_space_ids?.includes(space.id) || user.assigned_space_id === space.id)
   ) : false;
+
+  // Buscar professores cadastrados quando regente
+  useEffect(() => {
+    if (isRegenteOfSpace) {
+      const fetchTeachers = async () => {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, name')
+          .order('name');
+        if (data) {
+          setAllTeachers(data);
+        }
+      };
+      fetchTeachers();
+    }
+  }, [isRegenteOfSpace]);
 
   // Carregar dados da edição
   useEffect(() => {
@@ -382,7 +402,7 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
 
         // Batch insert
         const bookingsToInsert = validDates.map(date => ({
-          user_id: user.id,
+          user_id: delegateUserId || user.id,
           space_id: space.id,
           space_name: space.name,
           date: formatDateLocal(date),
@@ -454,7 +474,7 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
       }
 
       const bookingData = {
-        user_id: existingUserId || user.id,
+        user_id: existingUserId || delegateUserId || user.id,
         space_id: space.id,
         space_name: space.name,
         date: formattedDate,
@@ -671,13 +691,35 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
                   </button>
                 </div>
                 <div className="grid grid-cols-7 gap-1 text-center">
-                  {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(d => <span key={d} className="text-xs font-medium text-gray-400 py-2">{d}</span>)}
+                  {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => <span key={`header-${i}`} className="text-xs font-medium text-gray-400 py-2">{d}</span>)}
                   {getDaysInMonth(currentDate).map((day, idx) => {
                     if (!day) return <div key={`empty-${idx}`} />;
 
                     const isSelectable = isDateSelectable(day);
                     const isSelected = selectedDate?.toDateString() === day.toDateString();
                     const dayLabel = day.getDate();
+
+                    // Prévia de turmas agendadas neste dia
+                    const dayStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+                    const dayBookings = existingBookings.filter(b => b.date === dayStr && b.status !== 'Cancelado');
+                    const hasBookings = dayBookings.length > 0;
+
+                    // Gerar labels de turma únicos
+                    const turmaLabels: string[] = [];
+                    dayBookings.forEach(b => {
+                      const bk = b as any;
+                      const letter = COURSE_LETTER_MAP[bk.course];
+                      let label: string;
+                      if (letter) {
+                        label = `${bk.year}º ${letter}`;
+                      } else {
+                        // Curso "Outros" - mostrar apenas nome da ação
+                        label = bk.course || '';
+                      }
+                      if (label && !turmaLabels.includes(label)) {
+                        turmaLabels.push(label);
+                      }
+                    });
 
                     return (
                       <button
@@ -687,14 +729,31 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
                           setSelectedDate(day);
                           setSelectedLessons([]); // Limpar seleção ao mudar dia
                         }}
-                        className={`size-9 flex items-center justify-center rounded-full text-sm transition-all ${isSelected
+                        className={`min-h-[36px] flex flex-col items-center justify-center rounded-lg text-sm transition-all px-0.5 py-1 ${isSelected
                           ? 'bg-primary text-white font-semibold shadow-md'
                           : isSelectable
                             ? 'text-slate-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                             : 'text-gray-300 dark:text-gray-700 cursor-not-allowed'
                           }`}
                       >
-                        {dayLabel}
+                        <span>{dayLabel}</span>
+                        {hasBookings && (
+                          <div className="flex flex-col items-center gap-0 mt-0.5">
+                            <span className={`material-symbols-outlined leading-none ${isSelected ? 'text-white/80' : 'text-gray-400 dark:text-gray-500'}`} style={{fontSize: '10px'}}>lock</span>
+                            {turmaLabels.slice(0, 2).map((label, i) => (
+                              <span
+                                key={i}
+                                className={`leading-none font-bold truncate max-w-full ${isSelected ? 'text-white/80' : 'text-primary/70 dark:text-blue-400/70'}`}
+                                style={{fontSize: '7px'}}
+                              >
+                                {label}
+                              </span>
+                            ))}
+                            {turmaLabels.length > 2 && (
+                              <span className={`leading-none ${isSelected ? 'text-white/60' : 'text-gray-400'}`} style={{fontSize: '6px'}}>+{turmaLabels.length - 2}</span>
+                            )}
+                          </div>
+                        )}
                       </button>
                     );
                   })}
@@ -795,6 +854,35 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
                           {year}º Ano
                         </button>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Agendamento em nome de outro professor (Regente) */}
+                {isRegenteOfSpace && !editId && (
+                  <div className="pt-3 border-t border-gray-100 dark:border-gray-700 mt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="material-symbols-outlined text-primary text-lg">person_add</span>
+                      <label className="text-slate-900 dark:text-white text-base font-bold">Agendar em nome de</label>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                      Opcional: selecione um professor para que este agendamento apareça nos horários dele.
+                    </p>
+                    <div className="relative">
+                      <select
+                        value={delegateUserId}
+                        onChange={(e) => setDelegateUserId(e.target.value)}
+                        className="w-full h-12 pl-4 pr-10 rounded-xl bg-white dark:bg-[#1a2634] border border-gray-200 dark:border-gray-700 dark:text-white focus:ring-2 focus:ring-primary appearance-none bg-none outline-none shadow-sm text-sm font-medium cursor-pointer"
+                        style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none' }}
+                      >
+                        <option value="">Minha conta (padrão)</option>
+                        {allTeachers.map(t => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                        <span className="material-symbols-outlined">expand_more</span>
+                      </div>
                     </div>
                   </div>
                 )}
