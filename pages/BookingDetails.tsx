@@ -84,6 +84,24 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
       .single();
 
     if (data) {
+      // Verificar se o usuário atual tem permissão para editar este agendamento
+      const isOwner = data.user_id === user.id;
+      const isAdmin = user.role === 'Administrador';
+      const isRegente = user.role === 'Regente' && (
+        user.assigned_space_ids?.includes(data.space_id) || 
+        user.assigned_space_id === data.space_id
+      );
+
+      if (!isOwner && !isAdmin && !isRegente) {
+        showModal({
+          title: 'Acesso Negado',
+          message: 'Você não tem permissão para editar este agendamento.',
+          type: 'error'
+        });
+        navigate('/');
+        return;
+      }
+
       // Pre-fill state
       const [y, m, d] = data.date.split('-').map(Number);
       const dateObj = new Date(y, m - 1, d); // Month is 0-indexed
