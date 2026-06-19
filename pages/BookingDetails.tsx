@@ -274,8 +274,10 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
 
     if (isOccupied) return;
 
-    if (LESSONS[index] === 'Almoço') {
-      const canBookLunch = 
+    const isRestrictedTime = LESSONS[index] === 'Almoço' || LESSONS[index] === 'Interv. Manhã' || LESSONS[index] === 'Interv. Tarde';
+
+    if (isRestrictedTime) {
+      const canBookRestricted = 
         user.role === 'Coordenador(a)' ||
         user.role === 'Coordenador' ||
         user.role === 'Administrador' ||
@@ -283,10 +285,10 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
         ((user.role === 'Regente' || user.role === 'PCA') && 
          (user.assigned_space_ids?.includes(space.id) || user.assigned_space_id === space.id));
 
-      if (!canBookLunch) {
+      if (!canBookRestricted) {
         showModal({
           title: 'Acesso Negado',
-          message: 'Este horário só pode ser agendado pelo regente do ambiente ou coordenação.',
+          message: 'Este horário (almoço/intervalo) só pode ser agendado pelo regente do ambiente ou coordenação.',
           type: 'error'
         });
         return;
@@ -347,10 +349,14 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
       return;
     }
 
-    // Restringir agendamento do horário de almoço em qualquer ambiente
-    const lunchIndex = LESSONS.indexOf('Almoço');
-    if (lunchIndex !== -1 && selectedLessons.includes(lunchIndex)) {
-      const canBookLunch = 
+    // Restringir agendamento do horário de almoço e intervalos em qualquer ambiente
+    const restrictedIndices = selectedLessons.filter(idx => {
+      const label = LESSONS[idx];
+      return label === 'Almoço' || label === 'Interv. Manhã' || label === 'Interv. Tarde';
+    });
+
+    if (restrictedIndices.length > 0) {
+      const canBookRestricted = 
         user.role === 'Coordenador(a)' ||
         user.role === 'Coordenador' ||
         user.role === 'Administrador' ||
@@ -358,10 +364,10 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
         ((user.role === 'Regente' || user.role === 'PCA') && 
          (user.assigned_space_ids?.includes(space.id) || user.assigned_space_id === space.id));
 
-      if (!canBookLunch) {
+      if (!canBookRestricted) {
         showModal({
           title: 'Acesso Negado',
-          message: 'O horário de almoço só pode ser agendado pelo regente do ambiente ou coordenação.',
+          message: 'Horários de almoço ou intervalos só podem ser agendados pelo regente do ambiente ou coordenação.',
           type: 'error'
         });
         return;
