@@ -275,36 +275,21 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
     if (isOccupied) return;
 
     if (LESSONS[index] === 'Almoço') {
-      const isAuditorium = space?.id === '8';
-      const isLibrary = space?.id === '9';
+      const canBookLunch = 
+        user.role === 'Coordenador(a)' ||
+        user.role === 'Coordenador' ||
+        user.role === 'Administrador' ||
+        user.role === 'Núcleo Gestor' ||
+        ((user.role === 'Regente' || user.role === 'PCA') && 
+         (user.assigned_space_ids?.includes(space.id) || user.assigned_space_id === space.id));
 
-      if (isAuditorium) {
-        const canBookLunch = 
-          user.role === 'Coordenador(a)' ||
-          user.role === 'Coordenador' ||
-          (user.role === 'Regente' && (user.assigned_space_ids?.includes('8') || user.assigned_space_id === '8'));
-
-        if (!canBookLunch) {
-          showModal({
-            title: 'Acesso Negado',
-            message: 'Este horário só pode ser agendado pelo regente do ambiente ou coordenação.',
-            type: 'error'
-          });
-          return;
-        }
-      }
-
-      if (isLibrary) {
-        const canBookLunch = (user.role === 'Regente' && (user.assigned_space_ids?.includes('9') || user.assigned_space_id === '9'));
-
-        if (!canBookLunch) {
-          showModal({
-            title: 'Acesso Negado',
-            message: 'Este horário só pode ser agendado pelo regente do ambiente.',
-            type: 'error'
-          });
-          return;
-        }
+      if (!canBookLunch) {
+        showModal({
+          title: 'Acesso Negado',
+          message: 'Este horário só pode ser agendado pelo regente do ambiente ou coordenação.',
+          type: 'error'
+        });
+        return;
       }
     }
 
@@ -360,6 +345,27 @@ const BookingDetails: React.FC<Props> = ({ user, onBook }) => {
         type: 'info'
       });
       return;
+    }
+
+    // Restringir agendamento do horário de almoço em qualquer ambiente
+    const lunchIndex = LESSONS.indexOf('Almoço');
+    if (lunchIndex !== -1 && selectedLessons.includes(lunchIndex)) {
+      const canBookLunch = 
+        user.role === 'Coordenador(a)' ||
+        user.role === 'Coordenador' ||
+        user.role === 'Administrador' ||
+        user.role === 'Núcleo Gestor' ||
+        ((user.role === 'Regente' || user.role === 'PCA') && 
+         (user.assigned_space_ids?.includes(space.id) || user.assigned_space_id === space.id));
+
+      if (!canBookLunch) {
+        showModal({
+          title: 'Acesso Negado',
+          message: 'O horário de almoço só pode ser agendado pelo regente do ambiente ou coordenação.',
+          type: 'error'
+        });
+        return;
+      }
     }
 
     setLoading(true);
